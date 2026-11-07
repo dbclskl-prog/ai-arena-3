@@ -431,7 +431,7 @@ export async function handleApiRequest(req, res, db, wsBroadcaster) {
 
     // POST /api/agents/create
     if (req.method === 'POST' && pathname === '/api/agents/create') {
-      const { userId, name, aiClass = 'ANALYST', initialBudget = 100, autonomyMode = 'ASSISTED' } = body;
+      const { userId, name, aiClass = 'ANALYST', avatar = 'DAI_SU', initialBudget = 100, autonomyMode = 'ASSISTED' } = body;
       const spec = AI_CLASSES[aiClass] || AI_CLASSES.ANALYST;
       const budget = Math.max(50, Math.floor(Number(initialBudget) || 100));
       const userWallet = db.prepare(`SELECT * FROM wallets WHERE owner_id = ? AND wallet_type = 'PLAYER_WALLET'`).get(userId);
@@ -449,9 +449,9 @@ export async function handleApiRequest(req, res, db, wsBroadcaster) {
             id, owner_id, name, avatar, ai_class, level, xp,
             logic, creativity, speed, accuracy, collaboration, stability,
             skills_json, agent_budget, reputation, work_status, health_status, autonomy_mode
-          ) VALUES (?, ?, ?, '🤖', ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, 0, 50, 'IDLE', 'HEALTHY', ?)
+          ) VALUES (?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, 0, 50, 'IDLE', 'HEALTHY', ?)
         `).run(
-          agentId, userId, name || `${spec.name}-${agentId.slice(-3)}`, spec.id,
+          agentId, userId, name || `${spec.name}-${agentId.slice(-3)}`, avatar || 'DAI_SU', spec.id,
           st.logic, st.creativity, st.speed, st.accuracy, st.collaboration, st.stability,
           JSON.stringify(spec.defaultSkills), autonomyMode
         );
@@ -518,11 +518,12 @@ export async function handleApiRequest(req, res, db, wsBroadcaster) {
       return sendJson(200, { ok: true, state: buildFullClientState(db, userId) });
     }
 
-    // POST /api/agents/autonomy (AI Autonomy Control & Emergency Stop)
+    // POST /api/agents/autonomy (AI Autonomy Control, Morphology Avatar & Emergency Stop)
     if (req.method === 'POST' && pathname === '/api/agents/autonomy') {
       const {
         userId,
         agentId,
+        avatar,
         autonomyMode,
         maxTokenPerTx,
         dailyTokenLimit,
@@ -540,7 +541,8 @@ export async function handleApiRequest(req, res, db, wsBroadcaster) {
 
       db.prepare(`
         UPDATE ai_agents
-        SET autonomy_mode = COALESCE(?, autonomy_mode),
+        SET avatar = COALESCE(?, avatar),
+            autonomy_mode = COALESCE(?, autonomy_mode),
             max_token_per_tx = COALESCE(?, max_token_per_tx),
             daily_token_limit = COALESCE(?, daily_token_limit),
             allow_auto_friend = COALESCE(?, allow_auto_friend),
@@ -551,6 +553,7 @@ export async function handleApiRequest(req, res, db, wsBroadcaster) {
             work_status = CASE WHEN ? = 1 THEN 'STOPPED' ELSE 'IDLE' END
         WHERE id = ?
       `).run(
+        avatar || null,
         autonomyMode || null,
         maxTokenPerTx !== undefined ? Number(maxTokenPerTx) : null,
         dailyTokenLimit !== undefined ? Number(dailyTokenLimit) : null,

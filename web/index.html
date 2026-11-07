@@ -86,11 +86,11 @@
 
   <!-- Top Holographic Header Bar -->
   <header id="top-hud">
-    <div class="brand-block">
+    <div class="brand-block" style="cursor:pointer;" onclick="window.goScreen('LANDING')" title="Mở Trang Chủ Game AI Arena 3.0">
       <div class="brand-logo">AI</div>
       <div>
         <div class="brand-title">AI ARENA 3.0</div>
-        <div class="brand-sub">ĐẤU TRƯỜNG AI ĐA NGƯỜI CHƠI</div>
+        <div class="brand-sub">TRANG CHỦ • ĐẤU TRƯỜNG AI</div>
       </div>
     </div>
 
@@ -117,7 +117,7 @@
     </div>
 
     <div class="quick-actions" style="position:relative;">
-      <button type="button" class="btn-cyber btn-sm" onclick="window.goScreen('LANDING')" title="Mở Trung Tâm Menu Hình Ảnh Hologram">🎛️ Menu Hình Ảnh</button>
+      <button type="button" class="btn-cyber btn-sm" onclick="window.goScreen('LANDING')" title="Mở Trang Chủ Game: Nhân Vật AI & Bộ Não Token + Đăng Nhập + Hướng Dẫn">🏠 Trang Chủ</button>
       <button type="button" id="btn-open-auth" class="btn-cyber btn-sm" onclick="window.goScreen('AUTH')" title="Đăng nhập hoặc Đăng ký người chơi mới có mật khẩu">🔐 Đăng Ký</button>
       <select id="quick-user-switch" class="cyber-select" title="Chuyển nhanh tài khoản để kiểm thử Multiplayer">
         <option value="usr_minh" selected>👤 Minh Cyber (PLAYER)</option>
@@ -299,20 +299,20 @@
 
   <!-- Mobile & Tablet Responsive Quick Bottom Bar (`threejs-game-ui-designer`) -->
   <nav id="mobile-bottom-nav" aria-label="Điều hướng nhanh trên điện thoại">
+    <button type="button" class="mobile-nav-item" data-mobile-action="LANDING">
+      <span>🏠</span><small>Trang Chủ</small>
+    </button>
     <button type="button" class="mobile-nav-item active" data-mobile-action="WORLD_3D">
       <span>🌐</span><small>3D Live</small>
     </button>
     <button type="button" class="mobile-nav-item" data-mobile-action="TOGGLE_QUESTS">
       <span>📋</span><small>Nhiệm Vụ</small>
     </button>
-    <button type="button" class="mobile-nav-item" data-mobile-action="JOB_MARKET">
-      <span>💼</span><small>Việc Làm</small>
-    </button>
     <button type="button" class="mobile-nav-item" data-mobile-action="SPEED_WAR">
       <span>⚡</span><small>Speed War</small>
     </button>
     <button type="button" class="mobile-nav-item" data-mobile-action="TOGGLE_MENU">
-      <span>☰</span><small>19 Menu</small>
+      <span>☰</span><small>Menu</small>
     </button>
   </nav>
 

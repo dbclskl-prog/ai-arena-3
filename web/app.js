@@ -4,10 +4,15 @@
 import { startThreeJsWorld } from './engine3d.js';
 import { soundStudio } from './audioEngine.js';
 import {
+  AI_ARCHETYPES,
   AI_CLASS_VISUALS,
+  QUEST_VISUAL_THEMES,
   VISUAL_MENU_ITEMS,
+  PLAYER_GUIDE_STEPS,
+  resolveAgentArchetype,
   renderAgentRadarSvg,
-  renderZoneIllustrationSvg
+  renderZoneIllustrationSvg,
+  renderAiTokenBrainHeroSvg
 } from './visualAssets.js';
 
 const DEFAULT_BOOT_STATE = {
@@ -66,7 +71,9 @@ const DEFAULT_BOOT_STATE = {
 const AppState = {
   currentUserId: localStorage.getItem('ai_arena_user_id') || 'usr_minh',
   data: DEFAULT_BOOT_STATE,
-  activeScreen: 'WORLD_3D',
+  activeScreen: 'LANDING',
+  homeBrainArchId: 'DAI_SU',
+  homeAuthTab: 'LOGIN',
   ws: null,
   wsConnected: false,
   worldPlayers: new Map(
@@ -383,6 +390,10 @@ function applyServerState(state) {
     AppState.localPlayer.z = state.character.pos_z;
     AppState.localPlayer.zone = state.character.zone;
     AppState.localPlayer.primaryColor = state.character.primary_color || '#00e5ff';
+    AppState.localPlayer.avatarStyle = state.character.avatar_style || 'HIEP_SI';
+    if (state.currentUser) {
+      state.currentUser.avatar_style = state.character.avatar_style || 'HIEP_SI';
+    }
   }
 
   if (state.allCharacters) {
@@ -398,6 +409,7 @@ function applyServerState(state) {
         rotY: c.rot_y,
         animState: c.anim_state || 'IDLE',
         primaryColor: c.primary_color || '#00e5ff',
+        avatarStyle: c.avatar_style || 'HIEP_SI',
         online: true
       });
     }
@@ -566,10 +578,11 @@ function renderQuestTracker() {
   const doneCount = AppState.quests.filter(q => q.completed).length;
   if (countEl) countEl.textContent = `${doneCount}/${AppState.quests.length} Chiến dịch`;
 
-  listEl.innerHTML = AppState.quests.map(q => {
+  listEl.innerHTML = AppState.quests.map((q, qIdx) => {
     const pct = Math.min(100, Math.round((q.progress / q.target) * 100));
     const currentStageIdx = Math.min((q.stages?.length || 3) - 1, q.progress);
     const activeStage = q.stages?.[currentStageIdx] || null;
+    const theme = QUEST_VISUAL_THEMES[qIdx % QUEST_VISUAL_THEMES.length];
 
     const stagesVisualHtml = (q.stages || []).map((st, idx) => {
       const isDone = q.completed || idx < q.progress;
@@ -578,37 +591,44 @@ function renderQuestTracker() {
       const statusBadge = isDone ? '✅' : isCurrent ? '⚡' : `Chặng ${st.stage}`;
 
       return `
-        <div class="quest-stage-node ${isDone ? 'done' : isCurrent ? 'active' : ''}" title="${st.label}: ${st.task}">
-          <div style="font-size:9px;font-weight:900;color:${isDone ? '#6ee7b7' : isCurrent ? '#fde047' : '#94a3b8'};">${statusBadge}</div>
+        <div class="quest-stage-node ${isDone ? 'done' : isCurrent ? 'active' : ''}" style="${isCurrent ? `border-color:${theme.border};background:rgba(15,23,42,0.88);` : ''}" title="${st.label}: ${st.task}">
+          <div style="font-size:9px;font-weight:900;color:${isDone ? '#6ee7b7' : isCurrent ? theme.border : '#94a3b8'};">${statusBadge}</div>
           <div style="width:42px;height:30px;margin:2px auto;">${clsVis.svgPortrait}</div>
-          <div style="font-size:9px;font-weight:800;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${clsVis.titleVi}</div>
+          <div style="font-size:9px;font-weight:800;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${clsVis.titleVi}</div>
           <div style="font-size:9.5px;font-weight:900;color:#34d399;">💎+${st.rewardToken}</div>
         </div>
       `;
     }).join('');
 
     return `
-      <div class="${q.completed ? 'quest-completed-card' : 'quest-highlight-card'}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px;">
-          <span class="${q.completed ? 'badge-ok' : 'quest-ribbon-tag'}">${q.completed ? '✅ HOÀN TẤT 3/3' : q.highlightTag}</span>
-          <span class="quest-reward-pill">💎 +${q.rewardToken} TKN</span>
+      <div class="${q.completed ? 'quest-completed-card' : 'quest-highlight-card'}" style="background:${q.completed ? 'linear-gradient(135deg,rgba(6,78,59,0.55),rgba(4,24,38,0.88))' : theme.bg};border-color:${q.completed ? '#10b981' : theme.border};">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+          <div style="width:38px;height:38px;flex-shrink:0;border-radius:10px;background:rgba(2,8,23,0.65);border:1.5px solid ${theme.border};padding:3px;box-shadow:0 0 12px ${theme.border}55;">
+            ${theme.iconSvg}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+              <span class="${q.completed ? 'badge-ok' : 'quest-ribbon-tag'}" style="${!q.completed ? `background:${theme.pillBg};color:#fff;` : ''}">${q.completed ? '✅ HOÀN TẤT 3/3' : q.highlightTag}</span>
+              <span class="quest-reward-pill">💎 +${q.rewardToken}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;color:#f8fafc;margin-top:2px;">
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${q.zoneName}</span>
+              <span style="color:${theme.border};font-size:10px;">${q.progress}/${q.target} Chặng</span>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;color:#f8fafc;margin-bottom:4px;">
-          <span>📍 ${q.zoneName}</span>
-          <span style="color:#38bdf8;font-size:10px;">${q.progress}/${q.target} Chặng</span>
-        </div>
-        <div class="stat-bar-track" style="width:100%;height:5px;margin-bottom:4px;">
-          <div class="stat-bar-fill" style="width:${pct}%;background:${q.completed ? '#10b981' : 'linear-gradient(90deg,#fbbf24,#00e5ff)'};"></div>
+        <div class="stat-bar-track" style="width:100%;height:5px;margin-bottom:5px;">
+          <div class="stat-bar-fill" style="width:${pct}%;background:${q.completed ? '#10b981' : theme.pillBg};"></div>
         </div>
         <div class="quest-visual-stepper">
           ${stagesVisualHtml}
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:4px 7px;font-size:10px;" onclick="window.teleport('${q.zoneId}')">
+          <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:4px 7px;font-size:10px;border-color:${theme.border};color:#f8fafc;" onclick="window.teleport('${q.zoneId}')">
             🎯 Dịch Chuyển
           </button>
           ${!q.completed && activeStage ? `
-            <button type="button" class="btn-cyber btn-sm" style="flex:1;padding:4px 8px;font-size:10px;" onclick="window.advanceQuestStage('${q.id}', this)">
+            <button type="button" class="btn-cyber btn-sm" style="flex:1;padding:4px 8px;font-size:10px;background:${theme.pillBg};border-color:#fff;" onclick="window.advanceQuestStage('${q.id}', this)">
               ▶️ Chặng ${activeStage.stage}/3 (💎+${activeStage.rewardToken})
             </button>
           ` : `
@@ -1256,33 +1276,287 @@ function renderActiveScreen() {
   const bodyEl = document.getElementById('screen-body');
   const scr = AppState.activeScreen;
 
-  // 1. LANDING SCREEN (VISUAL HOLOGRAM COMMAND HUB)
+  // 1. LANDING SCREEN (GAME HOME PORTAL: AI TOKEN BRAIN + LOGIN + PLAYER GUIDE + VISUAL HUB)
   if (scr === 'LANDING') {
-    titleEl.textContent = '🎛️ TRUNG TÂM MENU HÌNH ẢNH HOLOGRAM (VISUAL COMMAND HUB)';
+    const activeArchId = AppState.homeBrainArchId || 'DAI_SU';
+    const activeArch = AI_ARCHETYPES[activeArchId] || AI_ARCHETYPES.DAI_SU;
+    const authTab = AppState.homeAuthTab || 'LOGIN';
+    const walletBal = st.userWallet?.balance ?? 1250;
+    const myAgents = (st.agents || []).filter(a => a.owner_id === st.currentUser?.id);
+    const totalAgentBudget = myAgents.reduce((sum, a) => sum + (Number(a.agent_budget) || 0), 0);
+
+    const brainSynergyMap = {
+      DAI_SU: {
+        role: 'Đạo Sư Chiến Lược & Thẩm Định',
+        synapse: 'Mạch Logic 96% • Dự Báo Rủi Ro • Điều Phối Hào Quang Vàng',
+        tokenRule: 'Ưu tiên cấp 35% Quỹ Token cho Chặng 1 (Khảo sát dữ liệu & Định chuẩn hợp đồng).'
+      },
+      PHU_THUY: {
+        role: 'Phù Thủy Sáng Tạo & Cổ Ngữ AI',
+        synapse: 'Mạch Sáng Tạo 98% • Tổng Hợp Ý Tưởng • Phép Thuật Đa Chiều',
+        tokenRule: 'Tự động trích 30% Quỹ Token kích hoạt đột phá sáng tạo & nhân hệ số thưởng Speed War.'
+      },
+      BINH_DAN: {
+        role: 'Chiến Binh Thực Chiến Đa Năng',
+        synapse: 'Tốc Độ Thực Thi 92% • Tối Ưu Chi Phí • Bền Bỉ Mọi Nhiệm Vụ',
+        tokenRule: 'Tiết kiệm 25% chi phí Token mỗi tác vụ, cực kỳ hiệu quả khi cày Hợp Đồng 3 Chặng.'
+      },
+      HIEP_SI: {
+        role: 'Hiệp Sĩ Bảo Vệ Sổ Cái & Ký Quỹ',
+        synapse: 'Độ Ổn Định 97% • Khiên Chắn An Toàn • Kiểm Toán Tự Động',
+        tokenRule: 'Bảo vệ 100% ngân sách Escrow và tự động kích hoạt Khiên Cứu Trợ khi AI thiếu vốn.'
+      },
+      CO_KHI: {
+        role: 'Titan Cơ Khí Trọng Giáp Công Nghiệp',
+        synapse: 'Xử Lý Đa Luồng 95% • Đấu Thầu Tốc Độ • Sức Bền Siêu Việt',
+        tokenRule: 'Tăng +20% tốc độ hoàn thành hợp đồng độ khó ★4–★5 và tự động chia sẻ tải với đồng đội.'
+      },
+      TIEN_TU: {
+        role: 'Tiên Tử Giao Tiếp & Đàm Phán Liên Minh',
+        synapse: 'Hợp Tác 99% • Đàm Phán Tỷ Lệ Token • Kết Nối Mạng Xã Hội AI',
+        tokenRule: 'Tăng tỷ lệ chốt thỏa thuận chia thưởng (70/30 hoặc 65/35) và cộng điểm Uy Tín Liên Minh.'
+      }
+    };
+    const synergy = brainSynergyMap[activeArch.id] || brainSynergyMap.DAI_SU;
+
+    titleEl.textContent = '🏠 TRANG CHỦ ĐẤU TRƯỜNG AI 3.0 — BỘ NÃO TOKEN LƯỢNG TỬ & CỔNG ĐĂNG NHẬP';
     bodyEl.innerHTML = `
-      <div class="visual-hub-grid" style="margin-bottom:16px;">
-        ${VISUAL_MENU_ITEMS.map(item => `
-          <div class="visual-hub-card" style="background:${item.bg};border-color:${item.accent}88;" onclick="window.goScreen('${item.screen}')">
-            <span class="vtile-badge" style="color:${item.accent};border:1px solid ${item.accent}66;">${item.subTag}</span>
-            <div class="visual-hub-art">${item.artSvg}</div>
-            <strong style="font-size:14px;color:#f8fafc;">${item.icon} ${item.shortTitle}</strong>
+      <!-- PHẦN 1: HERO PORTAL (NHÂN VẬT AI GẮN VỚI BỘ NÃO TOKEN + CỔNG LOGIN/REGISTER) -->
+      <div class="home-hero-layout">
+        <!-- CỘT TRÁI: NHÂN VẬT AI GẮN VỚI BỘ NÃO TOKEN LƯỢNG TỬ -->
+        <div class="token-brain-stage">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <div>
+              <span class="quest-ribbon-tag" style="background:linear-gradient(90deg,#00e5ff,#a855f7);color:#fff;">🧠 BỘ NÃO TOKEN LƯỢNG TỬ • NEURAL TOKEN CORE</span>
+              <h3 style="font-size:16px;color:#f8fafc;margin-top:4px;">Nhân Vật AI Gắn Kết Trực Tiếp Với Bộ Não Token</h3>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span class="badge-ok" style="font-size:11px;">💎 Ví Chỉ Huy: ${walletBal.toLocaleString()} TKN</span>
+              <span class="badge-cyan" style="font-size:11px;">🤖 Quỹ AI: ${totalAgentBudget.toLocaleString()} TKN</span>
+            </div>
           </div>
-        `).join('')}
+
+          <!-- SƠ ĐỒ ĐỒ HỌA SVG ĐỘNG: BỘ NÃO TOKEN TRUNG TÂM & 6 DÂY THẦN KINH NỐI 6 NHÂN VẬT AI -->
+          <div class="token-brain-svg-wrap">
+            ${renderAiTokenBrainHeroSvg(activeArch.id, walletBal)}
+          </div>
+
+          <!-- THANH CHỌN NHANH 6 NHÂN VẬT AI KẾT NỐI BỘ NÃO TOKEN -->
+          <div class="brain-character-strip">
+            ${Object.values(AI_ARCHETYPES).map(arch => `
+              <div class="brain-char-chip ${arch.id === activeArch.id ? 'active' : ''}"
+                   style="border-color:${arch.id === activeArch.id ? arch.primary : 'rgba(148,163,184,0.25)'};"
+                   onclick="window.selectHomeBrainChar('${arch.id}')">
+                <div style="font-size:18px;line-height:1.1;">${arch.emoji}</div>
+                <strong style="color:${arch.id === activeArch.id ? arch.primary : '#f8fafc'};">${arch.titleVi.replace('AI ', '')}</strong>
+                <span>${arch.badge}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- THÔNG TIN ĐỒNG BỘ GIỮA BỘ NÃO TOKEN & NHÂN VẬT AI ĐANG CHỌN -->
+          <div style="margin-top:10px;background:${activeArch.bgGradient};border:1.5px solid ${activeArch.primary}aa;border-radius:14px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:220px;">
+              <div style="width:58px;height:58px;flex-shrink:0;">${activeArch.svgPortrait}</div>
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <strong style="font-size:14px;color:#ffffff;">${activeArch.emoji} ${activeArch.titleVi}</strong>
+                  <span class="badge-cyan" style="color:${activeArch.primary};border-color:${activeArch.primary}88;">${synergy.role}</span>
+                </div>
+                <div style="font-size:11px;color:#e2e8f0;margin-top:3px;">⚡ <strong>Mạch Thần Kinh AI:</strong> ${synergy.synapse}</div>
+                <div style="font-size:11px;color:#fde047;margin-top:2px;">💎 <strong>Cơ Chế Não Token:</strong> ${synergy.tokenRule}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn-cyber btn-sm" style="border-color:${activeArch.primary};color:#fff;" onclick="window.selectCharacterArchetype('${activeArch.id}', '${activeArch.primary}')">
+                ✨ Hóa Thân 3D Thành ${activeArch.titleVi}
+              </button>
+              <button class="btn-cyber btn-sm" onclick="window.goScreen('AI_MANAGER')">
+                🧠 Cấu Hình AI
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: CỔNG ĐĂNG NHẬP / ĐĂNG KÝ TÀI KHOẢN & VÀO THẾ GIỚI 3D -->
+        <div class="home-login-portal">
+          <div>
+            <!-- TRẠNG THÁI CHỈ HUY HIỆN TẠI -->
+            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.85);border:1px solid rgba(0,229,255,0.35);border-radius:12px;padding:8px 11px;margin-bottom:10px;">
+              <div>
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:800;">Chỉ Huy Đang Kết Nối</div>
+                <div style="font-size:14px;font-weight:900;color:#ffffff;">
+                  🧑‍🚀 ${st.currentUser?.display_name || 'Minh Cyber'}
+                  <span class="badge-ok" style="font-size:10px;margin-left:4px;">${st.currentUser?.role || 'PLAYER'}</span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px;color:#94a3b8;">Số Dư Token</div>
+                <div style="font-size:14px;font-weight:900;color:#fbbf24;">💎 ${walletBal.toLocaleString()} TKN</div>
+              </div>
+            </div>
+
+            <!-- NÚT BƯỚC VÀO ĐẤU TRƯỜNG 3D NGAY -->
+            <button class="btn-enter-3d-hero" style="margin-bottom:12px;" onclick="window.goScreen('WORLD_3D')">
+              ▶️ BƯỚC VÀO THẾ GIỚI 3D NGAY
+            </button>
+
+            <!-- CHUYỂN TAB ĐĂNG NHẬP / ĐĂNG KÝ NGƯỜI CHƠI MỚI -->
+            <div class="home-auth-tabs">
+              <button type="button" class="home-auth-tab ${authTab === 'LOGIN' ? 'active' : ''}" onclick="window.switchHomeAuthTab('LOGIN')">
+                🔑 Đăng Nhập
+              </button>
+              <button type="button" class="home-auth-tab ${authTab === 'REGISTER' ? 'active' : ''}" onclick="window.switchHomeAuthTab('REGISTER')">
+                ✨ Đăng Ký (+500 💎)
+              </button>
+            </div>
+
+            ${authTab === 'LOGIN' ? `
+              <form id="form-home-login">
+                <div class="form-group">
+                  <label>Tên đăng nhập (Username)</label>
+                  <input class="cyber-input" name="username" required autocomplete="username" placeholder="VD: minh_cyber / linh_quantum" value="${st.currentUser?.username || 'minh_cyber'}" />
+                </div>
+                <div class="form-group">
+                  <label>Mật khẩu bảo mật</label>
+                  <div style="display:flex;gap:6px;">
+                    <input type="password" id="home-login-pwd" class="cyber-input" name="password" required autocomplete="current-password" placeholder="Nhập mật khẩu (mẫu: player123)" value="player123" />
+                    <button type="button" class="btn-cyber btn-sm" onclick="window.toggleHomePwd('home-login-pwd')" title="Hiện/Ẩn mật khẩu">👁️</button>
+                  </div>
+                </div>
+                <button type="submit" class="btn-cyber btn-amber" style="width:100%;margin-top:4px;padding:9px;font-size:13px;">
+                  🔓 Đăng Nhập & Đồng Bộ Bộ Não Token
+                </button>
+              </form>
+            ` : `
+              <form id="form-home-register">
+                <div class="form-group">
+                  <label>Tên đăng nhập mới <span style="color:#f43f5e;">*</span></label>
+                  <input class="cyber-input" name="username" required placeholder="VD: chi_huy_ai_2026" />
+                </div>
+                <div class="form-group">
+                  <label>Tên hiển thị trong Thế giới 3D <span style="color:#f43f5e;">*</span></label>
+                  <input class="cyber-input" name="displayName" required placeholder="VD: Quang Đại Sư AI" />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div class="form-group">
+                    <label>Mật khẩu <span style="color:#f43f5e;">*</span></label>
+                    <input type="password" id="home-reg-pwd" class="cyber-input" name="password" required minlength="4" placeholder="Tối thiểu 4 ký tự" />
+                  </div>
+                  <div class="form-group">
+                    <label>Nhập lại MK <span style="color:#f43f5e;">*</span></label>
+                    <input type="password" class="cyber-input" name="confirmPassword" required minlength="4" placeholder="Xác nhận MK" />
+                  </div>
+                </div>
+                <input type="hidden" name="role" value="PLAYER" />
+                <input type="hidden" name="ageGroup" value="18_PLUS" />
+                <button type="submit" class="btn-cyber" style="width:100%;margin-top:4px;padding:9px;font-size:13px;border-color:#10b981;color:#ecfdf5;">
+                  ✨ Tạo Tài Khoản Mới & Nhận +500 💎 Token
+                </button>
+              </form>
+            `}
+          </div>
+
+          <!-- ĐĂNG NHẬP 1-CLICK TÀI KHOẢN DEMO -->
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(56,189,248,0.2);">
+            <div style="font-size:10.5px;color:#94a3b8;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+              <span>⚡ Chuyển nhanh Chỉ Huy mẫu (1-Click):</span>
+              <a href="javascript:void(0)" style="color:#00e5ff;text-decoration:none;font-weight:700;" onclick="window.goScreen('AUTH')">Đổi mật khẩu →</a>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">
+              ${(st.allUsers || []).slice(0, 4).map(u => `
+                <button type="button" class="btn-cyber btn-sm ${u.id === st.currentUser?.id ? 'btn-amber' : ''}"
+                        style="font-size:10.5px;padding:5px 6px;text-align:left;display:flex;justify-content:space-between;align-items:center;"
+                        onclick="window.loginAs('${u.id}')">
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.role === 'ADMIN' ? '🛡️' : '🧑‍🚀'} ${u.display_name}</span>
+                  <span style="font-size:9px;opacity:0.85;">${u.id === st.currentUser?.id ? '✓' : '→'}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- PHẦN 2: HƯỚNG DẪN NGƯỜI CHƠI 4 BƯỚC TRỰC QUAN (VISUAL PLAYER GUIDE) -->
+      <div class="holo-box" style="margin-bottom:14px;border-color:rgba(0,229,255,0.45);">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div>
+            <span class="quest-ribbon-tag">🧭 CẨM NANG TÂN THỦ • HƯỚNG DẪN CHƠI TRỰC QUAN 4 BƯỚC</span>
+            <h3 style="font-size:15px;color:#f8fafc;margin-top:4px;">Làm Chủ Nhân Vật 3D, Bộ Não Token & Đấu Trường AI Chỉ Trong 60 Giây</h3>
+          </div>
+          <span class="badge-cyan">Chuẩn Responsive: PC • Tablet • Điện Thoại</span>
+        </div>
+
+        <div class="player-guide-grid">
+          ${PLAYER_GUIDE_STEPS.map(step => `
+            <div class="guide-step-card" style="background:${step.bg};border-color:${step.accent}88;">
+              <div>
+                <div class="guide-step-header">
+                  <span class="guide-step-badge" style="color:${step.accent};border:1px solid ${step.accent}77;">${step.stepBadge}</span>
+                  <div class="guide-step-art">${step.svgArt}</div>
+                </div>
+                <strong style="font-size:13.5px;color:#ffffff;display:block;margin-bottom:4px;">${step.title}</strong>
+                <p style="font-size:11.5px;color:#cbd5e1;line-height:1.42;margin:0 0 10px 0;">${step.desc}</p>
+              </div>
+              <button class="btn-cyber btn-sm" style="width:100%;border-color:${step.accent};color:#ffffff;" onclick="window.goScreen('${step.actionScreen}')">
+                ${step.actionLabel} →
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- PHẦN 3: TRUNG TÂM MENU HÌNH ẢNH 16 TÍNH NĂNG (VISUAL COMMAND HUB) -->
       <div class="holo-box">
-        <h3 style="margin-bottom:10px;">🤖 BỘ SƯU TẬP 6 LỚP CHIẾN BINH AI TỰ CHỦ</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;">
-          ${Object.entries(AI_CLASS_VISUALS).map(([clsKey, v]) => `
-            <div style="background:${v.bgGradient};border:1px solid ${v.primary}66;border-radius:12px;padding:8px;text-align:center;cursor:pointer;" onclick="window.goScreen('AI_MANAGER')">
-              <div style="height:76px;margin-bottom:4px;">${v.svgPortrait}</div>
-              <div style="font-size:12px;font-weight:900;color:#f8fafc;">${v.titleVi}</div>
-              <span class="badge-cyan" style="font-size:9.5px;color:${v.primary};">${v.badge}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <h3>🎛️ TRUNG TÂM MENU HÌNH ẢNH HOLOGRAM (16 PHÂN KHU CHỨC NĂNG)</h3>
+          <span class="badge-ok">Chạm vào thẻ hình ảnh bất kỳ để mở ngay</span>
+        </div>
+        <div class="visual-hub-grid">
+          ${VISUAL_MENU_ITEMS.map(item => `
+            <div class="visual-hub-card" style="background:${item.bg};border-color:${item.accent}88;" onclick="window.goScreen('${item.screen}')">
+              <span class="vtile-badge" style="color:${item.accent};border:1px solid ${item.accent}66;">${item.subTag}</span>
+              <div class="visual-hub-art">${item.artSvg}</div>
+              <strong style="font-size:13.5px;color:#f8fafc;">${item.icon} ${item.shortTitle}</strong>
             </div>
           `).join('')}
         </div>
       </div>
     `;
+
+    document.getElementById('form-home-login')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = Object.fromEntries(fd.entries());
+      try {
+        await apiCall('/api/auth/login', 'POST', payload);
+        soundStudio.playPortalWhoosh();
+        showToast(`🔓 Đăng nhập thành công! Chào mừng Chỉ Huy "${payload.username}" kết nối Bộ Não Token!`, 'success');
+        renderActiveScreen();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('form-home-register')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = Object.fromEntries(fd.entries());
+      if (payload.password !== payload.confirmPassword) {
+        showToast('Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.', 'error');
+        return;
+      }
+      try {
+        await apiCall('/api/auth/register', 'POST', payload);
+        soundStudio.playWinFanfare(0);
+        showToast(`🎉 Tạo tài khoản "${payload.username}" thành công & nạp +500 💎 vào Bộ Não Token!`, 'success');
+        AppState.homeAuthTab = 'LOGIN';
+        renderActiveScreen();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
     return;
   }
 
@@ -1449,41 +1723,59 @@ function renderActiveScreen() {
     return;
   }
 
-  // 3. CHARACTER CREATOR SCREEN
+  // 3. CHARACTER CREATOR SCREEN (6 DIVERSE 3D CHARACTER MORPHOLOGIES)
   if (scr === 'CHARACTER') {
     const ch = st.character || {};
-    titleEl.textContent = '3. Tùy Chỉnh Nhân Vật 3D (Character Creator)';
+    const curStyle = ch.avatar_style || 'HIEP_SI';
+    titleEl.textContent = '🧑‍🚀 Tùy Chỉnh Hình Dáng Nhân Vật 3D (6 Hình Thể Đa Dạng)';
     bodyEl.innerHTML = `
+      <div class="holo-box" style="margin-bottom:14px;">
+        <h3 style="margin-bottom:8px;">✨ Chọn Hình Dáng 3D Cho Nhân Vật Của Bạn (Biến Hình Trực Tiếp Trong Thế Giới 3D)</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;">
+          ${Object.values(AI_ARCHETYPES).map(arch => {
+            const isSelected = curStyle === arch.id;
+            return `
+              <div style="background:${arch.bgGradient};border:${isSelected ? '2.5px' : '1px'} solid ${isSelected ? '#ffffff' : arch.primary};border-radius:14px;padding:10px;text-align:center;cursor:pointer;box-shadow:${isSelected ? `0 0 18px ${arch.primary}` : 'none'};" onclick="window.selectCharacterArchetype('${arch.id}', '${arch.primary}')">
+                <div style="height:82px;margin-bottom:4px;">${arch.svgPortrait}</div>
+                <div style="font-size:13px;font-weight:900;color:#f8fafc;">${arch.emoji} ${arch.titleVi}</div>
+                <div style="font-size:10px;color:#cbd5e1;margin-bottom:4px;">${arch.subtitleVi}</div>
+                <span class="${isSelected ? 'badge-ok' : 'badge-cyan'}" style="font-size:9.5px;">${isSelected ? '✓ ĐANG DÙNG 3D' : 'Chọn Hình Thể'}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
       <div class="grid-2">
         <div class="holo-box">
-          <h3>🧑‍🚀 Thiết Kế Giáp Cyber-Knight 3D</h3>
+          <h3>🎨 Tinh Chỉnh Tên & Màu Năng Lượng 3D</h3>
           <form id="form-char">
             <div class="form-group">
               <label>Tên Nhân Vật 3D</label>
               <input class="cyber-input" name="name" value="${ch.name || st.currentUser.display_name}" required />
             </div>
             <div class="form-group">
-              <label>Phong Cách Giáp (Avatar Style)</label>
-              <select class="cyber-select" name="avatarStyle">
-                <option value="CYBER_KNIGHT" ${ch.avatar_style === 'CYBER_KNIGHT' ? 'selected' : ''}>Cyber Knight (Chiến Binh Công Nghệ)</option>
-                <option value="NEURAL_ARCHITECT" ${ch.avatar_style === 'NEURAL_ARCHITECT' ? 'selected' : ''}>Neural Architect (Kiến Trúc Sư AI)</option>
-                <option value="QUANTUM_TRADER" ${ch.avatar_style === 'QUANTUM_TRADER' ? 'selected' : ''}>Quantum Trader (Nhà Giao Dịch Lượng Tử)</option>
+              <label>Hình Dáng 3D (Character Morphology)</label>
+              <select class="cyber-select" name="avatarStyle" id="char-style-select">
+                ${Object.values(AI_ARCHETYPES).map(arch => `
+                  <option value="${arch.id}" ${curStyle === arch.id ? 'selected' : ''}>${arch.emoji} ${arch.titleVi} – ${arch.subtitleVi}</option>
+                `).join('')}
               </select>
             </div>
             <div class="form-group">
               <label>Màu Năng Lượng Chủ Đạo (Primary Neon)</label>
-              <input type="color" class="cyber-input" name="primaryColor" value="${ch.primary_color || '#00e5ff'}" style="height:38px;" />
+              <input type="color" class="cyber-input" name="primaryColor" id="char-color-input" value="${ch.primary_color || '#00e5ff'}" style="height:38px;" />
             </div>
-            <button type="submit" class="btn-cyber">Lưu Ngoại Hình Nhân Vật 3D</button>
+            <button type="submit" class="btn-cyber" style="width:100%;">💾 Lưu Ngoại Hình Nhân Vật 3D</button>
           </form>
         </div>
         <div class="holo-box">
-          <h3>📊 Thông Số Nhân Vật Hiện Tại</h3>
+          <h3>📊 Trạng Thái Nhân Vật 3D Hiện Tại</h3>
           <p><strong>Cấp độ:</strong> Level ${ch.level || 1} (${ch.xp || 0} XP)</p>
+          <p style="margin-top:6px;"><strong>Hình thể 3D:</strong> <span class="badge-ok">${(AI_ARCHETYPES[curStyle] || AI_ARCHETYPES.HIEP_SI).emoji} ${(AI_ARCHETYPES[curStyle] || AI_ARCHETYPES.HIEP_SI).titleVi}</span></p>
           <p style="margin-top:6px;"><strong>Khu vực hiện tại:</strong> <span class="badge-cyan">${ch.zone || 'CENTRAL_HUB'}</span></p>
           <p style="margin-top:6px;"><strong>Tọa độ 3D:</strong> X=${Math.round(AppState.localPlayer.x)}, Z=${Math.round(AppState.localPlayer.z)}</p>
-          <p style="margin-top:6px;"><strong>Trạng thái Animation:</strong> <span class="badge-ok">${AppState.localPlayer.animState}</span> (Hỗ trợ Idle, Walk, Run, Interact)</p>
-          <button class="btn-cyber btn-outline" style="margin-top:14px;" onclick="window.goScreen('WORLD_3D')">Ra Thế Giới 3D Kiểm Tra Ngay</button>
+          <button class="btn-cyber" style="margin-top:14px;width:100%;" onclick="window.goScreen('WORLD_3D')">🌍 Ra Thế Giới 3D Ngắm Nhân Vật Mới</button>
         </div>
       </div>
     `;
@@ -1495,7 +1787,7 @@ function renderActiveScreen() {
           userId: st.currentUser.id,
           ...Object.fromEntries(fd.entries())
         });
-        showToast('Đã cập nhật nhân vật 3D!', 'success');
+        showToast('✨ Đã cập nhật hình dáng nhân vật 3D!', 'success');
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -1589,17 +1881,23 @@ function renderActiveScreen() {
     return;
   }
 
-  // 6. AI MANAGER & AUTONOMY CONTROL (VISUAL PORTRAITS + HEXAGONAL RADAR CHARTS)
+  // 6. AI MANAGER & AUTONOMY CONTROL (DIVERSE AI MORPHOLOGIES + HEXAGONAL RADAR CHARTS)
   if (scr === 'AI_MANAGER') {
-    titleEl.textContent = '🤖 Đội Hình AI Tự Chủ (Chân Dung Hologram & Biểu Đồ Radar 6 Trục)';
+    titleEl.textContent = '🤖 Đội Hình AI Tự Chủ (AI Đại Sư • AI Phù Thủy • AI Bình Dân • AI Hiệp Sĩ • AI Cơ Khí • AI Tiên Tử)';
     const myAgents = st.agents.filter(a => a.owner_id === st.currentUser.id);
     bodyEl.innerHTML = `
       <div class="holo-box" style="margin-bottom:14px;">
-        <h3>➕ Chiêu Mộ Chiến Binh AI Mới (6 Lớp Chuyên Môn)</h3>
-        <form id="form-create-agent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;align-items:end;margin-top:8px;">
+        <h3>➕ Chiêu Mộ Chiến Binh AI Mới & Chọn Hình Dáng Nhân Vật 3D</h3>
+        <form id="form-create-agent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;align-items:end;margin-top:8px;">
           <div>
             <label class="text-muted">Tên AI Agent</label>
-            <input class="cyber-input" name="name" placeholder="VD: TitanCoder-X" required />
+            <input class="cyber-input" name="name" placeholder="VD: Đại Sư Tuệ Giác" required />
+          </div>
+          <div>
+            <label class="text-muted">Hình Dáng Nhân Vật 3D</label>
+            <select class="cyber-select" name="avatar">
+              ${Object.values(AI_ARCHETYPES).map(arch => `<option value="${arch.id}">${arch.emoji} ${arch.titleVi} (${arch.subtitleVi})</option>`).join('')}
+            </select>
           </div>
           <div>
             <label class="text-muted">Chuyên Môn (6 Class)</label>
@@ -1619,47 +1917,43 @@ function renderActiveScreen() {
               <option value="LIMITED_AUTONOMOUS">Autonomous</option>
             </select>
           </div>
-          <button type="submit" class="btn-cyber">🚀 Khởi Tạo AI</button>
+          <button type="submit" class="btn-cyber">🚀 Khởi Tạo AI 3D</button>
         </form>
       </div>
 
       <div class="grid-2">
         ${myAgents.map(a => {
-          const vis = AI_CLASS_VISUALS[a.ai_class] || AI_CLASS_VISUALS.ANALYST;
+          const arch = resolveAgentArchetype(a);
           return `
-            <div class="holo-box" style="border-color:${vis.primary}77;background:${vis.bgGradient};">
+            <div class="holo-box" style="border-color:${arch.primary}88;background:${arch.bgGradient};">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <div>
-                  <h3 style="color:#f8fafc;">${a.avatar} ${a.name}</h3>
-                  <span class="badge-cyan" style="color:${vis.primary};">${vis.titleVi} • Lv.${a.level}</span>
+                  <h3 style="color:#f8fafc;">${arch.emoji} ${a.name}</h3>
+                  <span class="badge-cyan" style="color:${arch.primary};border-color:${arch.primary}66;">${arch.titleVi} • ${a.ai_class} • Lv.${a.level}</span>
                 </div>
                 <span class="${a.emergency_stopped ? 'badge-danger' : a.health_status === 'HEALTHY' ? 'badge-ok' : 'badge-warn'}">
                   ${a.emergency_stopped ? '⛔ DỪNG' : `💎 ${a.agent_budget} TKN`}
                 </span>
               </div>
 
-              <div style="display:flex;align-items:center;justify-content:space-around;gap:10px;background:rgba(2,8,23,0.65);border-radius:12px;padding:8px;margin-bottom:10px;">
-                <div style="width:140px;height:100px;">
-                  ${vis.svgPortrait}
+              <div style="display:flex;align-items:center;justify-content:space-around;gap:10px;background:rgba(2,8,23,0.68);border:1px solid ${arch.primary}44;border-radius:12px;padding:8px;margin-bottom:8px;">
+                <div style="width:140px;height:105px;">
+                  ${arch.svgPortrait}
                 </div>
-                ${renderAgentRadarSvg(a, vis.primary)}
+                ${renderAgentRadarSvg(a, arch.primary)}
               </div>
 
-              <div class="quest-visual-stepper" style="margin-bottom:10px;">
-                <div class="quest-stage-node done">
-                  <div style="font-size:9px;color:#38bdf8;font-weight:900;">CHẶNG 1</div>
-                  <div style="font-size:15px;">🔍</div>
-                  <div style="font-size:9px;color:#e2e8f0;font-weight:700;">Khảo Sát</div>
-                </div>
-                <div class="quest-stage-node active">
-                  <div style="font-size:9px;color:#fbbf24;font-weight:900;">CHẶNG 2</div>
-                  <div style="font-size:15px;">⚡</div>
-                  <div style="font-size:9px;color:#e2e8f0;font-weight:700;">Thực Thi</div>
-                </div>
-                <div class="quest-stage-node done">
-                  <div style="font-size:9px;color:#34d399;font-weight:900;">CHẶNG 3</div>
-                  <div style="font-size:15px;">💎</div>
-                  <div style="font-size:9px;color:#e2e8f0;font-weight:700;">Nghiệm Thu</div>
+              <div style="margin-bottom:10px;">
+                <div style="font-size:10px;font-weight:900;color:#cbd5e1;margin-bottom:4px;">🎭 ĐỔI HÌNH DÁNG NHÂN VẬT 3D (CHỌN TRỰC TIẾP):</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+                  ${Object.values(AI_ARCHETYPES).map(opt => {
+                    const activeMorph = arch.id === opt.id;
+                    return `
+                      <button type="button" class="btn-cyber btn-sm" style="padding:4px 5px;font-size:10px;background:${activeMorph ? opt.primary : 'rgba(15,23,42,0.85)'};color:${activeMorph ? '#020617' : '#e2e8f0'};border-color:${opt.primary};font-weight:${activeMorph ? '900' : '700'};" onclick="window.changeAgentArchetype('${a.id}', '${opt.id}')">
+                        ${opt.emoji} ${opt.titleVi.replace('AI ', '')}
+                      </button>
+                    `;
+                  }).join('')}
                 </div>
               </div>
 
@@ -1683,7 +1977,7 @@ function renderActiveScreen() {
           userId: st.currentUser.id,
           ...Object.fromEntries(fd.entries())
         });
-        showToast('Đã khởi tạo AI Agent mới thành công!', 'success');
+        showToast('✨ Đã khởi tạo Chiến Binh AI 3D mới thành công!', 'success');
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -2830,6 +3124,73 @@ window.test3dSfx = (sfxType) => {
       soundStudio.playUiClick('confirm');
   }
 };
+window.changeAgentArchetype = async (agentId, archetypeId) => {
+  const arch = AI_ARCHETYPES[archetypeId] || AI_ARCHETYPES.HIEP_SI;
+  // Immediate optimistic update for instant 2D + 3D morphing
+  const targetAgent = (AppState.data?.agents || []).find(a => a.id === agentId);
+  if (targetAgent) {
+    targetAgent.avatar = archetypeId;
+  }
+  soundStudio.playPortalWhoosh();
+  renderActiveScreen();
+  try {
+    await apiCall('/api/agents/autonomy', 'POST', {
+      userId: AppState.currentUserId,
+      agentId,
+      avatar: archetypeId
+    });
+    showToast(`🎭 Đã biến hình AI sang hình dáng 3D: ${arch.emoji} ${arch.titleVi}!`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.selectCharacterArchetype = async (archetypeId, primaryHex) => {
+  const arch = AI_ARCHETYPES[archetypeId] || AI_ARCHETYPES.HIEP_SI;
+  AppState.localPlayer.avatarStyle = archetypeId;
+  if (primaryHex) {
+    AppState.localPlayer.primaryColor = primaryHex;
+  }
+  if (AppState.data?.character) {
+    AppState.data.character.avatar_style = archetypeId;
+    if (primaryHex) AppState.data.character.primary_color = primaryHex;
+  }
+  if (AppState.data?.currentUser) {
+    AppState.data.currentUser.avatar_style = archetypeId;
+  }
+  soundStudio.playPortalWhoosh();
+  renderActiveScreen();
+  try {
+    await apiCall('/api/character/update', 'POST', {
+      userId: AppState.currentUserId,
+      avatarStyle: archetypeId,
+      primaryColor: primaryHex || AppState.localPlayer.primaryColor
+    });
+    showToast(`✨ Nhân vật 3D của bạn đã biến hình thành ${arch.emoji} ${arch.titleVi}!`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.selectHomeBrainChar = (archetypeId) => {
+  if (!AI_ARCHETYPES[archetypeId]) return;
+  AppState.homeBrainArchId = archetypeId;
+  soundStudio.playUiClick('confirm');
+  renderActiveScreen();
+};
+
+window.switchHomeAuthTab = (tabName) => {
+  AppState.homeAuthTab = tabName === 'REGISTER' ? 'REGISTER' : 'LOGIN';
+  soundStudio.playUiClick('nav');
+  renderActiveScreen();
+};
+
+window.toggleHomePwd = (inputId) => {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+};
+
 window.resolveReport = async (reportId) => {
   try {
     await apiCall('/api/admin/resolve-report', 'POST', {
@@ -3073,6 +3434,7 @@ async function bootAiArenaClient() {
   });
 
   init3DWorld();
+  switchScreen('LANDING');
   connectMultiplayerWs();
   apiCall(`/api/state?userId=${AppState.currentUserId}`).catch((err) => {
     console.warn('Initial state sync warning:', err);

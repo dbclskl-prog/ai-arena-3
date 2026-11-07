@@ -175,14 +175,20 @@ export class GameFeelSystem {
  * 4. PROCEDURAL TEXTURES & SPRITE LABELS (`threejs-aaa-graphics-builder`)
  * ============================================================================ */
 export function createProceduralTextures(THREE) {
+  // 1. Multi-Color Neon Cyber-Grid Ground Texture
   const gridCanvas = document.createElement('canvas');
   gridCanvas.width = 512;
   gridCanvas.height = 512;
   const gCtx = gridCanvas.getContext('2d');
-  gCtx.fillStyle = '#040a18';
+  const bgGrad = gCtx.createLinearGradient(0, 0, 512, 512);
+  bgGrad.addColorStop(0, '#070b22');
+  bgGrad.addColorStop(0.5, '#09132c');
+  bgGrad.addColorStop(1, '#120b2e');
+  gCtx.fillStyle = bgGrad;
   gCtx.fillRect(0, 0, 512, 512);
 
-  gCtx.strokeStyle = 'rgba(14, 116, 144, 0.28)';
+  // Subtle circuit sub-grid
+  gCtx.strokeStyle = 'rgba(99, 102, 241, 0.24)';
   gCtx.lineWidth = 2;
   for (let i = 0; i <= 512; i += 64) {
     gCtx.beginPath();
@@ -195,14 +201,33 @@ export function createProceduralTextures(THREE) {
     gCtx.stroke();
   }
 
-  gCtx.strokeStyle = 'rgba(0, 229, 255, 0.65)';
+  // Diagonal cyber energy traces
+  gCtx.strokeStyle = 'rgba(236, 72, 153, 0.22)';
+  gCtx.lineWidth = 2;
+  gCtx.beginPath();
+  gCtx.moveTo(0, 256);
+  gCtx.lineTo(256, 0);
+  gCtx.moveTo(256, 512);
+  gCtx.lineTo(512, 256);
+  gCtx.stroke();
+
+  // Vibrant Cyan + Magenta outer tile frame
+  const borderGrad = gCtx.createLinearGradient(0, 0, 512, 512);
+  borderGrad.addColorStop(0, 'rgba(0, 229, 255, 0.78)');
+  borderGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.65)');
+  borderGrad.addColorStop(1, 'rgba(245, 158, 11, 0.75)');
+  gCtx.strokeStyle = borderGrad;
   gCtx.lineWidth = 4;
   gCtx.strokeRect(2, 2, 508, 508);
 
+  // Multi-color corner power nodes
   gCtx.fillStyle = '#00e5ff';
   gCtx.fillRect(0, 0, 14, 14);
+  gCtx.fillStyle = '#ec4899';
   gCtx.fillRect(498, 0, 14, 14);
+  gCtx.fillStyle = '#fbbf24';
   gCtx.fillRect(0, 498, 14, 14);
+  gCtx.fillStyle = '#10b981';
   gCtx.fillRect(498, 498, 14, 14);
 
   const groundTexture = new THREE.CanvasTexture(gridCanvas);
@@ -213,17 +238,28 @@ export function createProceduralTextures(THREE) {
     groundTexture.colorSpace = THREE.SRGBColorSpace;
   }
 
+  // 2. Multi-Color Neon Metropolis Building Windows Texture
   const winCanvas = document.createElement('canvas');
   winCanvas.width = 256;
   winCanvas.height = 512;
   const wCtx = winCanvas.getContext('2d');
-  wCtx.fillStyle = '#071126';
+  wCtx.fillStyle = '#09122c';
   wCtx.fillRect(0, 0, 256, 512);
 
+  const windowPalette = [
+    'rgba(56, 189, 248, 0.92)',  // Cyber Cyan
+    'rgba(244, 114, 182, 0.88)', // Neon Pink
+    'rgba(251, 191, 36, 0.90)',  // Amber Gold
+    'rgba(168, 85, 247, 0.88)',  // Electric Violet
+    'rgba(52, 211, 153, 0.88)'   // Emerald
+  ];
   for (let y = 16; y < 496; y += 28) {
     for (let x = 16; x < 240; x += 36) {
-      const lit = ((x * 7 + y * 13) % 5) !== 0;
-      wCtx.fillStyle = lit ? 'rgba(56, 189, 248, 0.85)' : 'rgba(15, 23, 42, 0.9)';
+      const hash = (x * 7 + y * 13);
+      const lit = (hash % 5) !== 0;
+      wCtx.fillStyle = lit
+        ? windowPalette[hash % windowPalette.length]
+        : 'rgba(15, 23, 42, 0.92)';
       wCtx.fillRect(x, y, 22, 14);
     }
   }
@@ -231,7 +267,37 @@ export function createProceduralTextures(THREE) {
   buildingTexture.wrapS = THREE.RepeatWrapping;
   buildingTexture.wrapT = THREE.RepeatWrapping;
 
-  return { groundTexture, buildingTexture };
+  // 3. Vibrant Cyber-Aurora & Sunset Horizon Sky Dome Texture
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 512;
+  skyCanvas.height = 512;
+  const sCtx = skyCanvas.getContext('2d');
+  const skyGrad = sCtx.createLinearGradient(0, 0, 0, 512);
+  skyGrad.addColorStop(0.0, '#05081c');  // Deep Cosmic Zenith
+  skyGrad.addColorStop(0.28, '#1e1b4b'); // Indigo Nebula
+  skyGrad.addColorStop(0.46, '#4c1d95'); // Royal Cyber Violet
+  skyGrad.addColorStop(0.62, '#9d174d'); // Sunset Magenta-Rose
+  skyGrad.addColorStop(0.76, '#0369a1'); // Electric Horizon Cyan
+  skyGrad.addColorStop(1.0, '#091024');  // Ground Fog Blend
+  sCtx.fillStyle = skyGrad;
+  sCtx.fillRect(0, 0, 512, 512);
+
+  // Glowing Aurora Ribbons & Star Specks across the sky dome
+  for (let i = 0; i < 140; i++) {
+    const sx = (i * 73) % 512;
+    const sy = (i * 41) % 320;
+    const r = (i % 3 === 0) ? 2.0 : 1.2;
+    sCtx.fillStyle = i % 4 === 0 ? '#fde047' : i % 3 === 0 ? '#67e8f9' : '#f9a8d4';
+    sCtx.beginPath();
+    sCtx.arc(sx, sy, r, 0, Math.PI * 2);
+    sCtx.fill();
+  }
+  const skyTexture = new THREE.CanvasTexture(skyCanvas);
+  if (skyTexture.colorSpace !== undefined && THREE.SRGBColorSpace) {
+    skyTexture.colorSpace = THREE.SRGBColorSpace;
+  }
+
+  return { groundTexture, buildingTexture, skyTexture };
 }
 
 export function createBillboardSprite(THREE, title, subtitle = '', borderColor = '#00e5ff', scaleWidth = 9) {
@@ -352,13 +418,369 @@ export function createMaterialLibrary(THREE, textures) {
 }
 
 /* ============================================================================
- * 6. AUTHORED HERO CHARACTER & AI COMPANION DRONE FACTORY (`HeroFactory`)
+ * 6. DIVERSE 3D CHARACTER & AI MORPHOLOGY ENGINE (`DAI_SU`, `PHU_THUY`, `BINH_DAN`, `HIEP_SI`, `CO_KHI`, `TIEN_TU`)
  * ============================================================================ */
-export function createCyberKnightHero(THREE, { name, title, primaryColor = '#00e5ff', isLocal = false }) {
+export const MORPHOLOGY_CONFIG = {
+  DAI_SU: {
+    key: 'DAI_SU',
+    label: 'AI Đại Sư',
+    emoji: '🧘',
+    primaryHex: '#f59e0b',
+    secondaryHex: '#ef4444'
+  },
+  PHU_THUY: {
+    key: 'PHU_THUY',
+    label: 'AI Phù Thủy',
+    emoji: '🧙',
+    primaryHex: '#a855f7',
+    secondaryHex: '#ec4899'
+  },
+  BINH_DAN: {
+    key: 'BINH_DAN',
+    label: 'AI Bình Dân',
+    emoji: '🧑‍💻',
+    primaryHex: '#10b981',
+    secondaryHex: '#00e5ff'
+  },
+  HIEP_SI: {
+    key: 'HIEP_SI',
+    label: 'AI Hiệp Sĩ',
+    emoji: '⚔️',
+    primaryHex: '#3b82f6',
+    secondaryHex: '#38bdf8'
+  },
+  CO_KHI: {
+    key: 'CO_KHI',
+    label: 'AI Cơ Khí',
+    emoji: '🦾',
+    primaryHex: '#f43f5e',
+    secondaryHex: '#fb923c'
+  },
+  TIEN_TU: {
+    key: 'TIEN_TU',
+    label: 'AI Tiên Tử',
+    emoji: '🧚',
+    primaryHex: '#ec4899',
+    secondaryHex: '#c084fc'
+  }
+};
+
+export function resolveMorphologyKey(rawAvatarOrStyle = '', aiClass = '') {
+  const s = String(rawAvatarOrStyle || '').toUpperCase().trim();
+  if (MORPHOLOGY_CONFIG[s]) return s;
+  if (s.includes('🧘') || s.includes('DAI_SU') || s.includes('MONK') || s.includes('SAGE')) return 'DAI_SU';
+  if (s.includes('🧙') || s.includes('PHU_THUY') || s.includes('MAGE') || s.includes('WIZARD')) return 'PHU_THUY';
+  if (s.includes('🧑‍💻') || s.includes('BINH_DAN') || s.includes('CITIZEN') || s.includes('HACKER')) return 'BINH_DAN';
+  if (s.includes('⚔️') || s.includes('HIEP_SI') || s.includes('KNIGHT') || s.includes('CYBER_KNIGHT')) return 'HIEP_SI';
+  if (s.includes('🦾') || s.includes('CO_KHI') || s.includes('MECHA') || s.includes('TITAN')) return 'CO_KHI';
+  if (s.includes('🧚') || s.includes('TIEN_TU') || s.includes('FAIRY') || s.includes('MUSE')) return 'TIEN_TU';
+
+  const classMap = {
+    ANALYST: 'DAI_SU',
+    CREATOR: 'PHU_THUY',
+    TRADER: 'BINH_DAN',
+    CODER: 'HIEP_SI',
+    GUARDIAN: 'CO_KHI',
+    MANAGER: 'TIEN_TU'
+  };
+  return classMap[String(aiClass || '').toUpperCase()] || 'HIEP_SI';
+}
+
+export function attachArchetype3dMorphology(THREE, {
+  morphKey,
+  root,
+  bodyRig,
+  headGroup,
+  rightArmPivot,
+  primaryHex,
+  secondaryHex
+}) {
+  const pMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(primaryHex),
+    emissive: new THREE.Color(primaryHex),
+    emissiveIntensity: 0.68,
+    roughness: 0.25,
+    metalness: 0.55
+  });
+  const sMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(secondaryHex),
+    emissive: new THREE.Color(secondaryHex),
+    emissiveIntensity: 0.85,
+    roughness: 0.2,
+    metalness: 0.45
+  });
+  const goldMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.9,
+    roughness: 0.2,
+    metalness: 0.85
+  });
+
+  const morphFX = {
+    morphKey,
+    dharmaWheel: null,
+    wizardRunes: null,
+    hoverboard: null,
+    fairyWings: null,
+    staffOrb: null
+  };
+
+  if (morphKey === 'DAI_SU') {
+    // 1. AI ĐẠI SƯ: Conical Golden Sage Hat + Flowing Saffron Robe + Levitating Dharma Halo & 6 Prayer Beads + Lotus Staff
+    const conicalHat = new THREE.Mesh(new THREE.ConeGeometry(0.68, 0.36, 20), goldMat);
+    conicalHat.position.set(0, 0.42, 0);
+    headGroup.add(conicalHat);
+
+    const robeSkirt = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.05, 16), pMat);
+    robeSkirt.position.set(0, 0.88, 0);
+    bodyRig.add(robeSkirt);
+
+    const dharmaGroup = new THREE.Group();
+    dharmaGroup.position.set(0, 2.15, -0.45);
+    const haloRing = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.045, 12, 32), goldMat);
+    dharmaGroup.add(haloRing);
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2;
+      const bead = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), i % 2 === 0 ? goldMat : sMat);
+      bead.position.set(Math.cos(ang) * 0.78, Math.sin(ang) * 0.78, 0);
+      dharmaGroup.add(bead);
+    }
+    bodyRig.add(dharmaGroup);
+    morphFX.dharmaWheel = dharmaGroup;
+
+    if (rightArmPivot) {
+      const staffPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.85, 8), goldMat);
+      staffPole.position.set(0, -0.35, 0.22);
+      staffPole.rotation.x = 0.25;
+      rightArmPivot.add(staffPole);
+      const lotusGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), sMat);
+      lotusGem.position.set(0, 0.56, 0.44);
+      rightArmPivot.add(lotusGem);
+      morphFX.staffOrb = lotusGem;
+    }
+  } else if (morphKey === 'PHU_THUY') {
+    // 2. AI PHÙ THỦY: Tall Pointed Cyber-Wizard Hat + Wide Brim + Mystic Cape + Crystal Staff + Counter-Rotating Ground Runes
+    const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.05, 22), pMat);
+    hatBrim.position.set(0, 0.30, 0);
+    headGroup.add(hatBrim);
+
+    const hatCone = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.92, 18), pMat);
+    hatCone.position.set(0, 0.76, -0.04);
+    hatCone.rotation.x = -0.15;
+    headGroup.add(hatCone);
+
+    const hatBand = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.045, 8, 20), goldMat);
+    hatBand.rotation.x = Math.PI / 2;
+    hatBand.position.set(0, 0.36, 0);
+    headGroup.add(hatBand);
+
+    const cape = new THREE.Mesh(new THREE.BoxGeometry(0.88, 1.25, 0.06), pMat);
+    cape.position.set(0, 1.32, -0.36);
+    cape.rotation.x = 0.14;
+    bodyRig.add(cape);
+
+    if (rightArmPivot) {
+      const wandPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.75, 8), pMat);
+      wandPole.position.set(0, -0.35, 0.24);
+      wandPole.rotation.x = 0.22;
+      rightArmPivot.add(wandPole);
+      const arcaneOrb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), sMat);
+      arcaneOrb.position.set(0, 0.54, 0.44);
+      rightArmPivot.add(arcaneOrb);
+      morphFX.staffOrb = arcaneOrb;
+    }
+
+    const runeGroup = new THREE.Group();
+    runeGroup.position.y = 0.12;
+    const outerRune = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.28, 6), sMat);
+    outerRune.rotation.x = -Math.PI / 2;
+    const innerRune = new THREE.Mesh(new THREE.RingGeometry(0.75, 0.86, 3), goldMat);
+    innerRune.rotation.x = -Math.PI / 2;
+    runeGroup.add(outerRune);
+    runeGroup.add(innerRune);
+    root.add(runeGroup);
+    morphFX.wizardRunes = runeGroup;
+  } else if (morphKey === 'BINH_DAN') {
+    // 3. AI BÌNH DÂN: Neon Street Headphones + Cyber Visor Cap + Hoodie Collar + Anti-Gravity Neon Hoverboard
+    const headband = new THREE.Mesh(new THREE.TorusGeometry(0.40, 0.055, 10, 20, Math.PI), sMat);
+    headband.position.set(0, 0.05, 0);
+    headGroup.add(headband);
+
+    const earL = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.12, 16), pMat);
+    earL.rotation.z = Math.PI / 2;
+    earL.position.set(-0.40, 0.04, 0);
+    headGroup.add(earL);
+
+    const earR = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.12, 16), pMat);
+    earR.rotation.z = Math.PI / 2;
+    earR.position.set(0.40, 0.04, 0);
+    headGroup.add(earR);
+
+    const hoodieCollar = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.10, 10, 20), pMat);
+    hoodieCollar.rotation.x = Math.PI / 2;
+    hoodieCollar.position.set(0, 1.98, 0);
+    bodyRig.add(hoodieCollar);
+
+    const boardGroup = new THREE.Group();
+    boardGroup.position.set(0, 0.16, 0);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.10, 1.82), pMat);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.05, 1.88), sMat);
+    boardGroup.add(deck);
+    boardGroup.add(trim);
+    root.add(boardGroup);
+    morphFX.hoverboard = boardGroup;
+  } else if (morphKey === 'CO_KHI') {
+    // 4. AI CƠ KHÍ: Heavy Titan Mecha Chassis (1.24x scale) + Bulky Shoulder Pauldrons + Twin Shoulder Plasma Cannons
+    bodyRig.scale.set(1.22, 1.16, 1.22);
+
+    const pauldronL = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.48), pMat);
+    pauldronL.position.set(-0.68, 2.04, 0);
+    bodyRig.add(pauldronL);
+
+    const pauldronR = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.48), pMat);
+    pauldronR.position.set(0.68, 2.04, 0);
+    bodyRig.add(pauldronR);
+
+    const cannonL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 0.92, 12), sMat);
+    cannonL.rotation.x = Math.PI / 2.3;
+    cannonL.position.set(-0.56, 2.34, 0.18);
+    bodyRig.add(cannonL);
+
+    const cannonR = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 0.92, 12), sMat);
+    cannonR.rotation.x = Math.PI / 2.3;
+    cannonR.position.set(0.56, 2.34, 0.18);
+    bodyRig.add(cannonR);
+  } else if (morphKey === 'TIEN_TU') {
+    // 5. AI TIÊN TỬ: Celestial Star Crown + 4 Fluttering Holographic Butterfly Wings
+    const crownRing = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 8, 20), goldMat);
+    crownRing.rotation.x = Math.PI / 2;
+    crownRing.position.set(0, 0.34, 0);
+    headGroup.add(crownRing);
+
+    const crownGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), sMat);
+    crownGem.position.set(0, 0.48, 0.24);
+    headGroup.add(crownGem);
+
+    const wingMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(primaryHex),
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.76
+    });
+    const wingSubMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(secondaryHex),
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.68
+    });
+
+    const wingsGroup = new THREE.Group();
+    wingsGroup.position.set(0, 1.68, -0.34);
+
+    const wingTopL = new THREE.Mesh(new THREE.CircleGeometry(0.68, 16), wingMat);
+    wingTopL.scale.set(1.25, 0.72, 1);
+    wingTopL.position.set(-0.62, 0.28, 0);
+    wingTopL.rotation.z = -0.35;
+    wingsGroup.add(wingTopL);
+
+    const wingTopR = new THREE.Mesh(new THREE.CircleGeometry(0.68, 16), wingMat);
+    wingTopR.scale.set(1.25, 0.72, 1);
+    wingTopR.position.set(0.62, 0.28, 0);
+    wingTopR.rotation.z = 0.35;
+    wingsGroup.add(wingTopR);
+
+    const wingBotL = new THREE.Mesh(new THREE.CircleGeometry(0.48, 16), wingSubMat);
+    wingBotL.scale.set(1.15, 0.68, 1);
+    wingBotL.position.set(-0.48, -0.26, 0);
+    wingBotL.rotation.z = 0.35;
+    wingsGroup.add(wingBotL);
+
+    const wingBotR = new THREE.Mesh(new THREE.CircleGeometry(0.48, 16), wingSubMat);
+    wingBotR.scale.set(1.15, 0.68, 1);
+    wingBotR.position.set(0.48, -0.26, 0);
+    wingBotR.rotation.z = -0.35;
+    wingsGroup.add(wingBotR);
+
+    bodyRig.add(wingsGroup);
+    morphFX.fairyWings = wingsGroup;
+  } else {
+    // 6. AI HIỆP SĨ (`HIEP_SI`): Sweeping Cyber-Plasma Wings + Paladin V-Crest + Glowing Cyber-Blade
+    const vCrestL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.38, 0.12), goldMat);
+    vCrestL.position.set(-0.16, 0.38, 0.24);
+    vCrestL.rotation.z = 0.45;
+    headGroup.add(vCrestL);
+
+    const vCrestR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.38, 0.12), goldMat);
+    vCrestR.position.set(0.16, 0.38, 0.24);
+    vCrestR.rotation.z = -0.45;
+    headGroup.add(vCrestR);
+
+    const wingGroup = new THREE.Group();
+    wingGroup.position.set(0, 1.72, -0.38);
+    for (const side of [-1, 1]) {
+      const upperBlade = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.16, 0.06), sMat);
+      upperBlade.position.set(side * 0.65, 0.24, -0.05);
+      upperBlade.rotation.z = side * -0.38;
+      wingGroup.add(upperBlade);
+
+      const lowerBlade = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.12, 0.06), pMat);
+      lowerBlade.position.set(side * 0.55, -0.12, -0.05);
+      lowerBlade.rotation.z = side * 0.22;
+      wingGroup.add(lowerBlade);
+    }
+    bodyRig.add(wingGroup);
+    morphFX.fairyWings = wingGroup;
+
+    if (rightArmPivot) {
+      const cyberBlade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.15, 0.16), sMat);
+      cyberBlade.position.set(0, -0.68, 0.36);
+      cyberBlade.rotation.x = Math.PI / 2.4;
+      rightArmPivot.add(cyberBlade);
+    }
+  }
+
+  return morphFX;
+}
+
+export function animateMorphologyFX(morphFX, elapsed, idx = 0) {
+  if (!morphFX) return;
+  if (morphFX.dharmaWheel) {
+    morphFX.dharmaWheel.rotation.z = elapsed * 1.6 + idx;
+  }
+  if (morphFX.wizardRunes) {
+    morphFX.wizardRunes.rotation.y = elapsed * 1.4;
+  }
+  if (morphFX.staffOrb) {
+    morphFX.staffOrb.rotation.y = elapsed * 3.2;
+    morphFX.staffOrb.rotation.x = elapsed * 2.1;
+  }
+  if (morphFX.fairyWings) {
+    const flap = 1.0 + Math.sin(elapsed * 8.5 + idx) * 0.14;
+    morphFX.fairyWings.scale.set(flap, 1, 1);
+  }
+  if (morphFX.hoverboard) {
+    morphFX.hoverboard.position.y = 0.16 + Math.sin(elapsed * 5.0 + idx) * 0.05;
+  }
+}
+
+/* ============================================================================
+ * 6B. AUTHORED HERO CHARACTER & AI COMPANION DRONE FACTORY (`HeroFactory`)
+ * ============================================================================ */
+export function createCyberKnightHero(THREE, {
+  name,
+  title,
+  primaryColor = '#00e5ff',
+  avatarStyle = 'HIEP_SI',
+  isLocal = false
+}) {
   const root = new THREE.Group();
+  const morphKey = resolveMorphologyKey(avatarStyle, 'CODER');
+  const morphCfg = MORPHOLOGY_CONFIG[morphKey] || MORPHOLOGY_CONFIG.HIEP_SI;
+  const effectivePrimary = primaryColor || morphCfg.primaryHex;
 
   const armorMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(primaryColor),
+    color: new THREE.Color(effectivePrimary),
     roughness: 0.32,
     metalness: 0.65
   });
@@ -368,20 +790,20 @@ export function createCyberKnightHero(THREE, { name, title, primaryColor = '#00e
     metalness: 0.45
   });
   const visorMat = new THREE.MeshStandardMaterial({
-    color: 0x00e5ff,
-    emissive: new THREE.Color(primaryColor),
+    color: new THREE.Color(morphCfg.secondaryHex),
+    emissive: new THREE.Color(effectivePrimary),
     emissiveIntensity: 1.2,
     roughness: 0.15
   });
   const flameMat = new THREE.MeshBasicMaterial({
-    color: 0x38bdf8,
+    color: new THREE.Color(morphCfg.secondaryHex),
     transparent: true,
     opacity: 0.85
   });
 
   const auraRing = new THREE.Mesh(
     new THREE.RingGeometry(0.75, 0.98, 28),
-    new THREE.MeshBasicMaterial({ color: primaryColor, side: THREE.DoubleSide, transparent: true, opacity: isLocal ? 0.75 : 0.4 })
+    new THREE.MeshBasicMaterial({ color: effectivePrimary, side: THREE.DoubleSide, transparent: true, opacity: isLocal ? 0.75 : 0.4 })
   );
   auraRing.rotation.x = -Math.PI / 2;
   auraRing.position.y = 0.04;
@@ -468,6 +890,17 @@ export function createCyberKnightHero(THREE, { name, title, primaryColor = '#00e
   rightLegMesh.castShadow = true;
   rightLegPivot.add(rightLegMesh);
 
+  // Attach 3D Archetype Morphology (`DAI_SU`, `PHU_THUY`, `BINH_DAN`, `HIEP_SI`, `CO_KHI`, `TIEN_TU`)
+  const morphFX = attachArchetype3dMorphology(THREE, {
+    morphKey,
+    root,
+    bodyRig,
+    headGroup,
+    rightArmPivot,
+    primaryHex: effectivePrimary,
+    secondaryHex: morphCfg.secondaryHex
+  });
+
   const companionDrone = new THREE.Group();
   companionDrone.position.set(1.35, 2.55, 0);
   root.add(companionDrone);
@@ -480,12 +913,12 @@ export function createCyberKnightHero(THREE, { name, title, primaryColor = '#00e
 
   const badge = createBillboardSprite(
     THREE,
-    `${isLocal ? '★ ' : ''}${name}`,
-    title || 'AI Commander',
-    primaryColor,
-    4.5
+    `${isLocal ? '★ ' : ''}${morphCfg.emoji} ${name}`,
+    `${morphCfg.label} • ${title || 'AI Commander'}`,
+    effectivePrimary,
+    4.8
   );
-  badge.sprite.position.set(0, 3.65, 0);
+  badge.sprite.position.set(0, 3.85, 0);
   root.add(badge.sprite);
 
   return {
@@ -501,7 +934,10 @@ export function createCyberKnightHero(THREE, { name, title, primaryColor = '#00e
     companionDrone,
     droneGyro,
     auraRing,
-    badge
+    badge,
+    morphFX,
+    morphKey,
+    primaryColor: effectivePrimary
   };
 }
 
@@ -555,6 +991,7 @@ export function updateHeroAnimation(hero, animState, elapsed, isLocal = false) {
   hero.droneGyro.rotation.z = elapsed * 3.2;
   hero.droneGyro.rotation.y = elapsed * 2.1;
   hero.auraRing.rotation.z = elapsed * 0.8;
+  animateMorphologyFX(hero.morphFX, elapsed, 0);
 }
 
 /* ============================================================================
@@ -645,15 +1082,10 @@ export function createSpeechBubbleSprite(THREE, accentColor = '#00e5ff') {
 
 export function createAutonomousAiBotMesh(THREE, agentData) {
   const root = new THREE.Group();
-  const classColors = {
-    ANALYST: '#00e5ff',
-    CODER: '#3b82f6',
-    CREATOR: '#a855f7',
-    GUARDIAN: '#10b981',
-    TRADER: '#f59e0b',
-    MANAGER: '#ec4899'
-  };
-  const colorHex = classColors[agentData.ai_class] || '#00e5ff';
+  const morphKey = resolveMorphologyKey(agentData.avatar, agentData.ai_class);
+  const morphCfg = MORPHOLOGY_CONFIG[morphKey] || MORPHOLOGY_CONFIG.HIEP_SI;
+  const colorHex = morphCfg.primaryHex;
+  const secondaryHex = morphCfg.secondaryHex;
 
   const armorMat = new THREE.MeshStandardMaterial({
     color: 0x0f172a,
@@ -667,7 +1099,7 @@ export function createAutonomousAiBotMesh(THREE, agentData) {
   });
   const coreMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    emissive: new THREE.Color(colorHex),
+    emissive: new THREE.Color(secondaryHex),
     emissiveIntensity: 1.25,
     roughness: 0.15
   });
@@ -695,7 +1127,12 @@ export function createAutonomousAiBotMesh(THREE, agentData) {
   headPivot.position.set(0, 2.22, 0);
   bodyRig.add(headPivot);
 
-  const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.54, 0.58), armorMat);
+  const headMesh = new THREE.Mesh(
+    morphKey === 'DAI_SU' || morphKey === 'TIEN_TU'
+      ? new THREE.SphereGeometry(0.36, 16, 14)
+      : new THREE.BoxGeometry(0.62, 0.54, 0.58),
+    armorMat
+  );
   headMesh.castShadow = true;
   headPivot.add(headMesh);
 
@@ -756,25 +1193,36 @@ export function createAutonomousAiBotMesh(THREE, agentData) {
   rightLegPivot.add(rightLeg);
   bodyRig.add(rightLegPivot);
 
-  // 5. Glowing Ground Aura Halo
+  // 5. Attach Distinctive 3D Archetype Morphology (`AI Đại Sư`, `AI Phù Thủy`, `AI Bình Dân`, `AI Hiệp Sĩ`, `AI Cơ Khí`, `AI Tiên Tử`)
+  const morphFX = attachArchetype3dMorphology(THREE, {
+    morphKey,
+    root,
+    bodyRig,
+    headGroup: headPivot,
+    rightArmPivot,
+    primaryHex: colorHex,
+    secondaryHex
+  });
+
+  // 6. Glowing Ground Aura Halo
   const halo = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.045, 10, 32), coreMat);
   halo.rotation.x = Math.PI / 2;
   halo.position.y = 0.08;
   root.add(halo);
 
-  // 6. Status Badge & 3D Floating Speech Bubble
+  // 7. Status Badge & 3D Floating Speech Bubble
   const badge = createBillboardSprite(
     THREE,
-    `${agentData.avatar || '🤖'} ${agentData.name}`,
-    `[BT: Đang khởi tạo...]`,
+    `${morphCfg.emoji} ${agentData.name}`,
+    `${morphCfg.label} • [BT: Đang khởi tạo...]`,
     colorHex,
-    4.8
+    5.2
   );
-  badge.sprite.position.set(0, 3.15, 0);
+  badge.sprite.position.set(0, 3.55, 0);
   root.add(badge.sprite);
 
   const speechBubble = createSpeechBubbleSprite(THREE, colorHex);
-  speechBubble.sprite.position.set(0, 4.45, 0);
+  speechBubble.sprite.position.set(0, 4.75, 0);
   root.add(speechBubble.sprite);
 
   return {
@@ -791,7 +1239,10 @@ export function createAutonomousAiBotMesh(THREE, agentData) {
     halo,
     badge,
     speechBubble,
-    colorHex
+    colorHex,
+    morphKey,
+    morphCfg,
+    morphFX
   };
 }
 
@@ -852,6 +1303,7 @@ export function updateAiAndroidAnimation(meshObj, animMode, elapsed, idx = 0) {
   }
   meshObj.pod.rotation.y = elapsed * 2.4 + idx;
   meshObj.halo.rotation.z = elapsed * 1.8;
+  animateMorphologyFX(meshObj.morphFX, elapsed, idx);
 }
 
 /* ============================================================================
@@ -1010,6 +1462,37 @@ export function buildWorldZoneComplex(THREE, zone, matLib) {
     animatedParts.push({ mesh: beacon, rotY: 1.5, bob: true, baseY: 15.5 });
   }
 
+  // Colorful 3D Mission Totem Beacon for Quest Zones
+  const questZoneMap = {
+    CENTRAL_HUB: { label: '🎯 NHIỆM VỤ #1: KHỞI ĐỘNG 3D', color: '#f59e0b' },
+    AI_LAB: { label: '🧬 NHIỆM VỤ #2: TẠO AI AGENT', color: '#a855f7' },
+    JOB_CITY: { label: '💼 NHIỆM VỤ #3: HỢP ĐỒNG AI', color: '#10b981' },
+    BATTLE_ARENA: { label: '⚔️ NHIỆM VỤ #4: SPEED WAR 3 VÒNG', color: '#f43f5e' }
+  };
+  if (questZoneMap[zone.id]) {
+    const qInfo = questZoneMap[zone.id];
+    const qGroup = new THREE.Group();
+    qGroup.position.set(padRadius * 0.72, 3.2, padRadius * 0.72);
+
+    const qMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(qInfo.color),
+      emissive: new THREE.Color(qInfo.color),
+      emissiveIntensity: 1.15,
+      roughness: 0.15
+    });
+    const qStar = new THREE.Mesh(new THREE.OctahedronGeometry(1.05, 0), qMat);
+    qGroup.add(qStar);
+    const qGyro = new THREE.Mesh(new THREE.TorusGeometry(1.48, 0.10, 10, 28), matLib.trimGold);
+    qGyro.rotation.x = Math.PI / 3;
+    qGroup.add(qGyro);
+    group.add(qGroup);
+    animatedParts.push({ mesh: qGroup, rotY: 2.2, bob: true, baseY: 3.2 });
+
+    const qSign = createBillboardSprite(THREE, qInfo.label, '★ ĐIỂM NHIỆM VỤ ĐA SẮC', qInfo.color, 8.8);
+    qSign.sprite.position.set(padRadius * 0.72, 6.2, padRadius * 0.72);
+    group.add(qSign.sprite);
+  }
+
   const sign = createBillboardSprite(
     THREE,
     zone.name,
@@ -1049,7 +1532,7 @@ export function startThreeJsWorld({
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.24;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   if (renderer.outputColorSpace !== undefined && THREE.SRGBColorSpace) {
@@ -1059,15 +1542,15 @@ export function startThreeJsWorld({
   }
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x030816);
-  scene.fog = new THREE.FogExp2(0x030816, 0.0052);
+  scene.background = new THREE.Color(0x090d26);
+  scene.fog = new THREE.FogExp2(0x111236, 0.0042);
 
-  const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.5, 320);
+  const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.5, 340);
 
-  const hemiLight = new THREE.HemisphereLight(0x7dd3fc, 0x09152b, 0.95);
+  const hemiLight = new THREE.HemisphereLight(0xf472b6, 0x0ea5e9, 1.15);
   scene.add(hemiLight);
 
-  const dirLight = new THREE.DirectionalLight(0xe0f2fe, 2.2);
+  const dirLight = new THREE.DirectionalLight(0xfef08a, 2.35);
   dirLight.position.set(45, 75, 35);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.set(2048, 2048);
@@ -1080,12 +1563,43 @@ export function startThreeJsWorld({
   sCam.bottom = -95;
   scene.add(dirLight);
 
-  const centerBeaconLight = new THREE.PointLight(0x00e5ff, 2.4, 65);
+  const centerBeaconLight = new THREE.PointLight(0x00e5ff, 2.8, 75);
   centerBeaconLight.position.set(0, 16, 0);
   scene.add(centerBeaconLight);
 
+  const sunsetRimLight = new THREE.PointLight(0xec4899, 2.2, 110);
+  sunsetRimLight.position.set(-45, 28, -45);
+  scene.add(sunsetRimLight);
+
+  const goldAccentLight = new THREE.PointLight(0xf59e0b, 2.0, 110);
+  goldAccentLight.position.set(48, 26, 42);
+  scene.add(goldAccentLight);
+
   const textures = createProceduralTextures(THREE);
   const matLib = createMaterialLibrary(THREE, textures);
+
+  // Vibrant Cyber-Aurora Sky Dome + Twin Orbital Horizon Rings
+  const skyDome = new THREE.Mesh(
+    new THREE.SphereGeometry(290, 32, 20),
+    new THREE.MeshBasicMaterial({ map: textures.skyTexture, side: THREE.BackSide, fog: false })
+  );
+  scene.add(skyDome);
+
+  const skyOrbitRing1 = new THREE.Mesh(
+    new THREE.TorusGeometry(145, 0.55, 8, 96),
+    new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.45, fog: false })
+  );
+  skyOrbitRing1.position.y = 52;
+  skyOrbitRing1.rotation.x = Math.PI / 2.3;
+  scene.add(skyOrbitRing1);
+
+  const skyOrbitRing2 = new THREE.Mesh(
+    new THREE.TorusGeometry(165, 0.45, 8, 96),
+    new THREE.MeshBasicMaterial({ color: 0xec4899, transparent: true, opacity: 0.38, fog: false })
+  );
+  skyOrbitRing2.position.y = 64;
+  skyOrbitRing2.rotation.x = -Math.PI / 2.5;
+  scene.add(skyOrbitRing2);
 
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), matLib.groundContact);
   ground.rotation.x = -Math.PI / 2;
@@ -1131,18 +1645,24 @@ export function startThreeJsWorld({
     scene.add(pylonInstanced);
   }
 
-  // Interactive Collectible 3D Data Shards
+  // Interactive Collectible Multi-Color 3D Data Shards
   const shards = [];
   const shardGeo = new THREE.OctahedronGeometry(0.65, 0);
   const shardRingGeo = new THREE.TorusGeometry(0.95, 0.06, 8, 20);
+  const shardMaterials = [
+    matLib.rewardEmerald,
+    matLib.trimGold,
+    matLib.hazardRed,
+    matLib.trimCyan
+  ];
   for (let i = 0; i < 16; i++) {
     const ang = (i / 16) * Math.PI * 2;
     const rad = i % 2 === 0 ? 26 : 48;
     const shardGroup = new THREE.Group();
     shardGroup.position.set(Math.cos(ang) * rad, 1.4, Math.sin(ang) * rad);
 
-    const crystal = new THREE.Mesh(shardGeo, matLib.rewardEmerald);
-    const ring = new THREE.Mesh(shardRingGeo, matLib.trimCyan);
+    const crystal = new THREE.Mesh(shardGeo, shardMaterials[i % shardMaterials.length]);
+    const ring = new THREE.Mesh(shardRingGeo, shardMaterials[(i + 1) % shardMaterials.length]);
     shardGroup.add(crystal);
     shardGroup.add(ring);
     scene.add(shardGroup);
@@ -1157,19 +1677,33 @@ export function startThreeJsWorld({
     });
   }
 
-  // Ambient Floating Cyber Data Particles
-  const particleCount = 420;
+  // Multi-Color Ambient Floating Cyber Data Particles
+  const particleCount = 460;
   const pPositions = new Float32Array(particleCount * 3);
+  const pColors = new Float32Array(particleCount * 3);
+  const paletteColors = [
+    new THREE.Color(0x00e5ff),
+    new THREE.Color(0xfbbf24),
+    new THREE.Color(0xec4899),
+    new THREE.Color(0xa855f7),
+    new THREE.Color(0x10b981),
+    new THREE.Color(0xf43f5e)
+  ];
   for (let i = 0; i < particleCount; i++) {
     pPositions[i * 3] = (Math.random() - 0.5) * 190;
-    pPositions[i * 3 + 1] = 1 + Math.random() * 28;
+    pPositions[i * 3 + 1] = 1 + Math.random() * 32;
     pPositions[i * 3 + 2] = (Math.random() - 0.5) * 190;
+    const c = paletteColors[i % paletteColors.length];
+    pColors[i * 3] = c.r;
+    pColors[i * 3 + 1] = c.g;
+    pColors[i * 3 + 2] = c.b;
   }
   const particleGeo = new THREE.BufferGeometry();
   particleGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
   const particleField = new THREE.Points(
     particleGeo,
-    new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.45, transparent: true, opacity: 0.65 })
+    new THREE.PointsMaterial({ size: 0.58, vertexColors: true, transparent: true, opacity: 0.85 })
   );
   scene.add(particleField);
 
@@ -1181,12 +1715,26 @@ export function startThreeJsWorld({
     for (const [uid, p] of AppState.worldPlayers.entries()) {
       activeIds.add(uid);
       const isMe = uid === AppState.currentUserId;
+      const desiredStyle = isMe
+        ? (AppState.data?.currentUser?.avatar_style || p.avatarStyle || 'HIEP_SI')
+        : (p.avatarStyle || 'HIEP_SI');
+      const desiredMorphKey = resolveMorphologyKey(desiredStyle, 'CODER');
+      const desiredColor = isMe
+        ? (AppState.localPlayer.primaryColor || p.primaryColor || '#00e5ff')
+        : (p.primaryColor || '#00e5ff');
+
       let hero = heroMeshes.get(uid);
+      if (hero && (hero.morphKey !== desiredMorphKey || hero.primaryColor !== desiredColor)) {
+        scene.remove(hero.root);
+        heroMeshes.delete(uid);
+        hero = null;
+      }
       if (!hero) {
         hero = createCyberKnightHero(THREE, {
           name: p.name || 'Commander',
           title: p.title || 'AI Agent Master',
-          primaryColor: p.primaryColor || '#00e5ff',
+          primaryColor: desiredColor,
+          avatarStyle: desiredMorphKey,
           isLocal: isMe
         });
         scene.add(hero.root);
@@ -1415,7 +1963,18 @@ export function startThreeJsWorld({
     for (let idx = 0; idx < agents.length; idx++) {
       const a = agents[idx];
       let bot = autonomousBots.get(a.id);
-      if (!bot) {
+      if (bot) {
+        const nextMorphKey = resolveMorphologyKey(a.avatar, a.ai_class);
+        if (bot.meshObj.morphKey !== nextMorphKey) {
+          scene.remove(bot.meshObj.root);
+          const newMeshObj = createAutonomousAiBotMesh(THREE, a);
+          newMeshObj.root.position.set(bot.x, 0, bot.z);
+          scene.add(newMeshObj.root);
+          bot.meshObj = newMeshObj;
+          gameFeel.triggerSquashStretchPop(newMeshObj.bodyRig, 0.28);
+        }
+        bot.agentData = a;
+      } else {
         const meshObj = createAutonomousAiBotMesh(THREE, a);
         const startAngle = (idx / Math.max(1, agents.length)) * Math.PI * 2;
         const startX = Math.cos(startAngle) * 8.5;
@@ -1450,8 +2009,6 @@ export function startThreeJsWorld({
           animMode: 'IDLE'
         };
         autonomousBots.set(a.id, bot);
-      } else {
-        bot.agentData = a;
       }
 
       // Sync latest database facts into Blackboard and tick BT every 1.5s
@@ -1469,9 +2026,10 @@ export function startThreeJsWorld({
           ? `💬 Đang giao tiếp AI`
           : bot.bb.get('currentUtilityLabel', 'Tuần tra');
         const score = bot.bb.get('currentUtilityScore', 0.85);
+        const mCfg = bot.meshObj.morphCfg || MORPHOLOGY_CONFIG.HIEP_SI;
         bot.meshObj.badge.updateText(
-          `${a.avatar || '🤖'} ${a.name} (${a.agent_budget} TKN)`,
-          `[U:${score}] ${label}`
+          `${mCfg.emoji} ${a.name} (${a.agent_budget} TKN)`,
+          `${mCfg.label} • [U:${score}] ${label}`
         );
       }
     }
@@ -2106,7 +2664,9 @@ export function startThreeJsWorld({
       sendWsMove();
     }
 
-    // 2. Animate Zone Landmarks
+    // 2. Animate Zone Landmarks & Sky Orbital Rings
+    skyOrbitRing1.rotation.z = elapsed * 0.08;
+    skyOrbitRing2.rotation.z = -elapsed * 0.06;
     for (const c of zoneComplexes) {
       for (const part of c.animatedParts) {
         if (part.rotY) part.mesh.rotation.y += part.rotY * dt;
