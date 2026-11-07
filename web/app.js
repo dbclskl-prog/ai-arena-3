@@ -1,7 +1,7 @@
 /**
  * AI ARENA 3.0 – 3D World Engine + Multiplayer Client + 19 Holographic Screens
  */
-import { startThreeJsWorld } from './engine3d.js';
+import { startThreeJsWorld, mountHome3dCharacterStage } from './engine3d.js';
 import { soundStudio } from './audioEngine.js';
 import {
   AI_ARCHETYPES,
@@ -1233,6 +1233,7 @@ function init3DWorld() {
 function switchScreen(screenId) {
   soundStudio.playUiClick(screenId === 'WORLD_3D' ? 'cancel' : 'nav');
   AppState.activeScreen = screenId;
+  document.body.classList.toggle('home-screen-active', screenId === 'LANDING');
   renderVisualSideNav();
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-screen') === screenId);
@@ -1276,11 +1277,10 @@ function renderActiveScreen() {
   const bodyEl = document.getElementById('screen-body');
   const scr = AppState.activeScreen;
 
-  // 1. LANDING SCREEN (GAME HOME PORTAL: AI TOKEN BRAIN + LOGIN + PLAYER GUIDE + VISUAL HUB)
+  // 1. LANDING SCREEN (TRANG HOME GAME: NHÂN VẬT AI 3D + LOGON & ĐĂNG KÝ + HƯỚNG DẪN CHƠI)
   if (scr === 'LANDING') {
-    const activeArchId = AppState.homeBrainArchId || 'DAI_SU';
+    const activeArchId = AppState.homeBrainArchId || st.character?.avatar_style || 'DAI_SU';
     const activeArch = AI_ARCHETYPES[activeArchId] || AI_ARCHETYPES.DAI_SU;
-    const authTab = AppState.homeAuthTab || 'LOGIN';
     const walletBal = st.userWallet?.balance ?? 1250;
     const myAgents = (st.agents || []).filter(a => a.owner_id === st.currentUser?.id);
     const totalAgentBudget = myAgents.reduce((sum, a) => sum + (Number(a.agent_budget) || 0), 0);
@@ -1319,172 +1319,175 @@ function renderActiveScreen() {
     };
     const synergy = brainSynergyMap[activeArch.id] || brainSynergyMap.DAI_SU;
 
-    titleEl.textContent = '🏠 TRANG CHỦ ĐẤU TRƯỜNG AI 3.0 — BỘ NÃO TOKEN LƯỢNG TỬ & CỔNG ĐĂNG NHẬP';
+    titleEl.textContent = '🏠 TRANG CHỦ GAME ĐẤU TRƯỜNG AI 3.0 — NHÂN VẬT AI 3D • LOGON & ĐĂNG KÝ • HƯỚNG DẪN CHƠI';
     bodyEl.innerHTML = `
-      <!-- PHẦN 1: HERO PORTAL (NHÂN VẬT AI GẮN VỚI BỘ NÃO TOKEN + CỔNG LOGIN/REGISTER) -->
+      <!-- PHẦN 1: HERO 2 CỘT (CỘT TRÁI: NHÂN VẬT AI 3D & BỘ NÃO TOKEN 3D | CỘT PHẢI: LOGON & ĐĂNG KÝ) -->
       <div class="home-hero-layout">
-        <!-- CỘT TRÁI: NHÂN VẬT AI GẮN VỚI BỘ NÃO TOKEN LƯỢNG TỬ -->
+        <!-- CỘT TRÁI: SÂN KHẤU NHÂN VẬT AI 3D & BỘ NÃO TOKEN 3D TƯƠNG TÁC TRỰC TIẾP -->
         <div class="token-brain-stage">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div>
-              <span class="quest-ribbon-tag" style="background:linear-gradient(90deg,#00e5ff,#a855f7);color:#fff;">🧠 BỘ NÃO TOKEN LƯỢNG TỬ • NEURAL TOKEN CORE</span>
-              <h3 style="font-size:16px;color:#f8fafc;margin-top:4px;">Nhân Vật AI Gắn Kết Trực Tiếp Với Bộ Não Token</h3>
+              <span class="quest-ribbon-tag" style="background:linear-gradient(90deg,#00e5ff,#a855f7);color:#fff;">🤖 SÂN KHẤU NHÂN VẬT AI 3D • KẾT NỐI BỘ NÃO TOKEN 3D</span>
+              <h3 style="font-size:15.5px;color:#f8fafc;margin-top:4px;">Mô Hình Nhân Vật AI 3D & Bộ Não Token Lượng Tử (Xoay 360°)</h3>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <span class="badge-ok" style="font-size:11px;">💎 Ví Chỉ Huy: ${walletBal.toLocaleString()} TKN</span>
-              <span class="badge-cyan" style="font-size:11px;">🤖 Quỹ AI: ${totalAgentBudget.toLocaleString()} TKN</span>
+              <span class="badge-ok" style="font-size:11px;">💎 Ví Token: ${walletBal.toLocaleString()} TKN</span>
+              <span class="badge-cyan" style="font-size:11px;">🧠 Quỹ Não AI: ${totalAgentBudget.toLocaleString()} TKN</span>
             </div>
           </div>
 
-          <!-- SƠ ĐỒ ĐỒ HỌA SVG ĐỘNG: BỘ NÃO TOKEN TRUNG TÂM & 6 DÂY THẦN KINH NỐI 6 NHÂN VẬT AI -->
-          <div class="token-brain-svg-wrap">
-            ${renderAiTokenBrainHeroSvg(activeArch.id, walletBal)}
+          <!-- SÂN KHẤU WEBGL 3D THỰC TẾ: NHÂN VẬT AI 3D + BỘ NÃO TOKEN 3D LƠ LỬNG PHÍA TRÊN -->
+          <div class="home-3d-viewport-box">
+            <canvas id="home-3d-character-canvas"></canvas>
+            <div class="home-3d-rotate-hint">🔄 Kéo chuột / Vuốt tay để xoay 360° Nhân Vật AI 3D & Bộ Não Token 3D</div>
           </div>
 
-          <!-- THANH CHỌN NHANH 6 NHÂN VẬT AI KẾT NỐI BỘ NÃO TOKEN -->
+          <!-- THANH CHỌN 6 HÌNH DÁNG NHÂN VẬT AI 3D -->
           <div class="brain-character-strip">
             ${Object.values(AI_ARCHETYPES).map(arch => `
               <div class="brain-char-chip ${arch.id === activeArch.id ? 'active' : ''}"
-                   style="border-color:${arch.id === activeArch.id ? arch.primary : 'rgba(148,163,184,0.25)'};"
+                   style="border-color:${arch.id === activeArch.id ? arch.primary : 'rgba(148,163,184,0.28)'};"
                    onclick="window.selectHomeBrainChar('${arch.id}')">
                 <div style="font-size:18px;line-height:1.1;">${arch.emoji}</div>
-                <strong style="color:${arch.id === activeArch.id ? arch.primary : '#f8fafc'};">${arch.titleVi.replace('AI ', '')}</strong>
+                <strong style="color:${arch.id === activeArch.id ? arch.primary : '#f8fafc'};">${arch.titleVi}</strong>
                 <span>${arch.badge}</span>
               </div>
             `).join('')}
           </div>
 
-          <!-- THÔNG TIN ĐỒNG BỘ GIỮA BỘ NÃO TOKEN & NHÂN VẬT AI ĐANG CHỌN -->
-          <div style="margin-top:10px;background:${activeArch.bgGradient};border:1.5px solid ${activeArch.primary}aa;border-radius:14px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:220px;">
-              <div style="width:58px;height:58px;flex-shrink:0;">${activeArch.svgPortrait}</div>
-              <div>
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                  <strong style="font-size:14px;color:#ffffff;">${activeArch.emoji} ${activeArch.titleVi}</strong>
-                  <span class="badge-cyan" style="color:${activeArch.primary};border-color:${activeArch.primary}88;">${synergy.role}</span>
-                </div>
-                <div style="font-size:11px;color:#e2e8f0;margin-top:3px;">⚡ <strong>Mạch Thần Kinh AI:</strong> ${synergy.synapse}</div>
-                <div style="font-size:11px;color:#fde047;margin-top:2px;">💎 <strong>Cơ Chế Não Token:</strong> ${synergy.tokenRule}</div>
+          <!-- THÔNG SỐ KẾT NỐI BỘ NÃO TOKEN & NÚT BƯỚC VÀO THẾ GIỚI 3D -->
+          <div style="margin-top:8px;background:${activeArch.bgGradient};border:1.5px solid ${activeArch.primary}aa;border-radius:13px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:210px;">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <strong style="font-size:13.5px;color:#ffffff;">${activeArch.emoji} ${activeArch.titleVi} (Mô Hình 3D)</strong>
+                <span class="badge-cyan" style="color:${activeArch.primary};border-color:${activeArch.primary}88;">${synergy.role}</span>
               </div>
+              <div style="font-size:11px;color:#e2e8f0;margin-top:2px;">⚡ <strong>Mạch Thần Kinh 3D:</strong> ${synergy.synapse}</div>
+              <div style="font-size:11px;color:#fde047;margin-top:2px;">💎 <strong>Bộ Não Token:</strong> ${synergy.tokenRule}</div>
             </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="btn-cyber btn-sm" style="border-color:${activeArch.primary};color:#fff;" onclick="window.selectCharacterArchetype('${activeArch.id}', '${activeArch.primary}')">
-                ✨ Hóa Thân 3D Thành ${activeArch.titleVi}
-              </button>
-              <button class="btn-cyber btn-sm" onclick="window.goScreen('AI_MANAGER')">
-                🧠 Cấu Hình AI
-              </button>
-            </div>
+            <button class="btn-enter-3d-hero" style="width:auto;padding:10px 18px;font-size:13.5px;" onclick="window.goScreen('WORLD_3D')">
+              ▶️ VÀO THẾ GIỚI 3D NGAY
+            </button>
           </div>
         </div>
 
-        <!-- CỘT PHẢI: CỔNG ĐĂNG NHẬP / ĐĂNG KÝ TÀI KHOẢN & VÀO THẾ GIỚI 3D -->
+        <!-- CỘT PHẢI: CỔNG LOGON (ĐĂNG NHẬP) & ĐĂNG KÝ TÀI KHOẢN NGƯỜI CHƠI -->
         <div class="home-login-portal">
-          <div>
-            <!-- TRẠNG THÁI CHỈ HUY HIỆN TẠI -->
-            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.85);border:1px solid rgba(0,229,255,0.35);border-radius:12px;padding:8px 11px;margin-bottom:10px;">
-              <div>
-                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:800;">Chỉ Huy Đang Kết Nối</div>
-                <div style="font-size:14px;font-weight:900;color:#ffffff;">
-                  🧑‍🚀 ${st.currentUser?.display_name || 'Minh Cyber'}
-                  <span class="badge-ok" style="font-size:10px;margin-left:4px;">${st.currentUser?.role || 'PLAYER'}</span>
-                </div>
-              </div>
-              <div style="text-align:right;">
-                <div style="font-size:10px;color:#94a3b8;">Số Dư Token</div>
-                <div style="font-size:14px;font-weight:900;color:#fbbf24;">💎 ${walletBal.toLocaleString()} TKN</div>
+          <!-- THANH TRẠNG THÁI TÀI KHOẢN ĐANG ONLINE -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(0,229,255,0.4);border-radius:12px;padding:8px 12px;">
+            <div>
+              <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:800;">Trạng Thái Logon Hiện Tại</div>
+              <div style="font-size:14px;font-weight:900;color:#ffffff;">
+                🧑‍🚀 ${st.currentUser?.display_name || 'Minh Cyber'}
+                <span class="badge-ok" style="font-size:10px;margin-left:4px;">ĐANG ONLINE • ${st.currentUser?.role || 'PLAYER'}</span>
               </div>
             </div>
-
-            <!-- NÚT BƯỚC VÀO ĐẤU TRƯỜNG 3D NGAY -->
-            <button class="btn-enter-3d-hero" style="margin-bottom:12px;" onclick="window.goScreen('WORLD_3D')">
-              ▶️ BƯỚC VÀO THẾ GIỚI 3D NGAY
+            <button class="btn-cyber btn-amber btn-sm" onclick="window.goScreen('WORLD_3D')">
+              🎮 Chơi Ngay Với Nhân Vật Này →
             </button>
-
-            <!-- CHUYỂN TAB ĐĂNG NHẬP / ĐĂNG KÝ NGƯỜI CHƠI MỚI -->
-            <div class="home-auth-tabs">
-              <button type="button" class="home-auth-tab ${authTab === 'LOGIN' ? 'active' : ''}" onclick="window.switchHomeAuthTab('LOGIN')">
-                🔑 Đăng Nhập
-              </button>
-              <button type="button" class="home-auth-tab ${authTab === 'REGISTER' ? 'active' : ''}" onclick="window.switchHomeAuthTab('REGISTER')">
-                ✨ Đăng Ký (+500 💎)
-              </button>
-            </div>
-
-            ${authTab === 'LOGIN' ? `
-              <form id="form-home-login">
-                <div class="form-group">
-                  <label>Tên đăng nhập (Username)</label>
-                  <input class="cyber-input" name="username" required autocomplete="username" placeholder="VD: minh_cyber / linh_quantum" value="${st.currentUser?.username || 'minh_cyber'}" />
-                </div>
-                <div class="form-group">
-                  <label>Mật khẩu bảo mật</label>
-                  <div style="display:flex;gap:6px;">
-                    <input type="password" id="home-login-pwd" class="cyber-input" name="password" required autocomplete="current-password" placeholder="Nhập mật khẩu (mẫu: player123)" value="player123" />
-                    <button type="button" class="btn-cyber btn-sm" onclick="window.toggleHomePwd('home-login-pwd')" title="Hiện/Ẩn mật khẩu">👁️</button>
-                  </div>
-                </div>
-                <button type="submit" class="btn-cyber btn-amber" style="width:100%;margin-top:4px;padding:9px;font-size:13px;">
-                  🔓 Đăng Nhập & Đồng Bộ Bộ Não Token
-                </button>
-              </form>
-            ` : `
-              <form id="form-home-register">
-                <div class="form-group">
-                  <label>Tên đăng nhập mới <span style="color:#f43f5e;">*</span></label>
-                  <input class="cyber-input" name="username" required placeholder="VD: chi_huy_ai_2026" />
-                </div>
-                <div class="form-group">
-                  <label>Tên hiển thị trong Thế giới 3D <span style="color:#f43f5e;">*</span></label>
-                  <input class="cyber-input" name="displayName" required placeholder="VD: Quang Đại Sư AI" />
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                  <div class="form-group">
-                    <label>Mật khẩu <span style="color:#f43f5e;">*</span></label>
-                    <input type="password" id="home-reg-pwd" class="cyber-input" name="password" required minlength="4" placeholder="Tối thiểu 4 ký tự" />
-                  </div>
-                  <div class="form-group">
-                    <label>Nhập lại MK <span style="color:#f43f5e;">*</span></label>
-                    <input type="password" class="cyber-input" name="confirmPassword" required minlength="4" placeholder="Xác nhận MK" />
-                  </div>
-                </div>
-                <input type="hidden" name="role" value="PLAYER" />
-                <input type="hidden" name="ageGroup" value="18_PLUS" />
-                <button type="submit" class="btn-cyber" style="width:100%;margin-top:4px;padding:9px;font-size:13px;border-color:#10b981;color:#ecfdf5;">
-                  ✨ Tạo Tài Khoản Mới & Nhận +500 💎 Token
-                </button>
-              </form>
-            `}
           </div>
 
-          <!-- ĐĂNG NHẬP 1-CLICK TÀI KHOẢN DEMO -->
-          <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(56,189,248,0.2);">
-            <div style="font-size:10.5px;color:#94a3b8;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-              <span>⚡ Chuyển nhanh Chỉ Huy mẫu (1-Click):</span>
-              <a href="javascript:void(0)" style="color:#00e5ff;text-decoration:none;font-weight:700;" onclick="window.goScreen('AUTH')">Đổi mật khẩu →</a>
+          <!-- HIỂN THỊ SONG SONG CẢ 2 KHỐI: 🔑 LOGON (ĐĂNG NHẬP) & ✨ ĐĂNG KÝ NGƯỜI CHƠI MỚI -->
+          <div class="home-auth-dual-grid">
+            <!-- KHỐI 1: LOGON (ĐĂNG NHẬP) -->
+            <div class="home-auth-box">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                  <h3 style="font-size:14px;color:#00e5ff;margin:0;">🔑 LOGON (ĐĂNG NHẬP)</h3>
+                  <span class="badge-cyan" style="font-size:9.5px;">JWT Bảo Mật</span>
+                </div>
+                <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">
+                  Đăng nhập tài khoản hiện có để tải Nhân Vật AI 3D & Ví Token của bạn.
+                </p>
+                <form id="form-home-login">
+                  <div class="form-group">
+                    <label>Tên đăng nhập (Username)</label>
+                    <input class="cyber-input" name="username" required autocomplete="username" placeholder="VD: minh_cyber" value="${st.currentUser?.username || 'minh_cyber'}" />
+                  </div>
+                  <div class="form-group">
+                    <label>Mật khẩu (Password)</label>
+                    <div style="display:flex;gap:5px;">
+                      <input type="password" id="home-login-pwd" class="cyber-input" name="password" required autocomplete="current-password" placeholder="Mẫu: player123" value="player123" />
+                      <button type="button" class="btn-cyber btn-sm" onclick="window.toggleHomePwd('home-login-pwd')" title="Hiện/Ẩn mật khẩu">👁️</button>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn-cyber btn-amber" style="width:100%;margin-top:6px;padding:9px;font-size:12.5px;">
+                    🔓 Logon & Kết Nối Não Token
+                  </button>
+                </form>
+              </div>
+
+              <!-- CHUYỂN NHANH TÀI KHOẢN DEMO 1-CLICK -->
+              <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(56,189,248,0.2);">
+                <div style="font-size:10px;color:#94a3b8;margin-bottom:5px;">⚡ Logon nhanh tài khoản mẫu (1-Click):</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                  ${(st.allUsers || []).slice(0, 4).map(u => `
+                    <button type="button" class="btn-cyber btn-sm ${u.id === st.currentUser?.id ? 'btn-amber' : ''}"
+                            style="font-size:10px;padding:4px 6px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                            onclick="window.loginAs('${u.id}')">
+                      ${u.role === 'ADMIN' ? '🛡️' : '🧑‍🚀'} ${u.display_name}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">
-              ${(st.allUsers || []).slice(0, 4).map(u => `
-                <button type="button" class="btn-cyber btn-sm ${u.id === st.currentUser?.id ? 'btn-amber' : ''}"
-                        style="font-size:10.5px;padding:5px 6px;text-align:left;display:flex;justify-content:space-between;align-items:center;"
-                        onclick="window.loginAs('${u.id}')">
-                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.role === 'ADMIN' ? '🛡️' : '🧑‍🚀'} ${u.display_name}</span>
-                  <span style="font-size:9px;opacity:0.85;">${u.id === st.currentUser?.id ? '✓' : '→'}</span>
-                </button>
-              `).join('')}
+
+            <!-- KHỐI 2: ĐĂNG KÝ NGƯỜI CHƠI MỚI (+500 💎 TOKEN) -->
+            <div class="home-auth-box register-box">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                  <h3 style="font-size:14px;color:#34d399;margin:0;">✨ ĐĂNG KÝ MỚI</h3>
+                  <span class="badge-ok" style="font-size:9.5px;">🎁 +500 💎 Token</span>
+                </div>
+                <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">
+                  Tạo tài khoản Chỉ Huy mới, khởi tạo Nhân Vật AI 3D & nhận ngay 500 Token.
+                </p>
+                <form id="form-home-register">
+                  <div class="form-group">
+                    <label>Tên đăng nhập mới <span style="color:#f43f5e;">*</span></label>
+                    <input class="cyber-input" name="username" required placeholder="VD: hoang_ai_2026" />
+                  </div>
+                  <div class="form-group">
+                    <label>Tên Nhân Vật 3D hiển thị <span style="color:#f43f5e;">*</span></label>
+                    <input class="cyber-input" name="displayName" required placeholder="VD: Hoàng Đại Sư AI" />
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+                    <div class="form-group">
+                      <label>Mật khẩu <span style="color:#f43f5e;">*</span></label>
+                      <input type="password" id="home-reg-pwd" class="cyber-input" name="password" required minlength="4" placeholder=">= 4 ký tự" />
+                    </div>
+                    <div class="form-group">
+                      <label>Nhập lại MK <span style="color:#f43f5e;">*</span></label>
+                      <input type="password" class="cyber-input" name="confirmPassword" required minlength="4" placeholder="Xác nhận" />
+                    </div>
+                  </div>
+                  <input type="hidden" name="role" value="PLAYER" />
+                  <input type="hidden" name="ageGroup" value="18_PLUS" />
+                  <button type="submit" class="btn-cyber" style="width:100%;margin-top:6px;padding:9px;font-size:12.5px;border-color:#10b981;color:#ecfdf5;">
+                    ✨ Đăng Ký & Nhận +500 💎 Token
+                  </button>
+                </form>
+              </div>
+
+              <div style="margin-top:8px;padding:6px 8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;font-size:10.5px;color:#a7f3d0;">
+                💡 Sau khi Đăng Ký, hệ thống tự động tạo <strong>Nhân Vật 3D (${activeArch.titleVi})</strong> và cấp <strong>500 💎</strong> vào Bộ Não Token!
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- PHẦN 2: HƯỚNG DẪN NGƯỜI CHƠI 4 BƯỚC TRỰC QUAN (VISUAL PLAYER GUIDE) -->
-      <div class="holo-box" style="margin-bottom:14px;border-color:rgba(0,229,255,0.45);">
+      <!-- PHẦN 2: HƯỚNG DẪN CHƠI 4 BƯỚC TRỰC QUAN (VISUAL PLAYER GUIDE) -->
+      <div class="holo-box" style="border-color:rgba(0,229,255,0.5);">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
           <div>
-            <span class="quest-ribbon-tag">🧭 CẨM NANG TÂN THỦ • HƯỚNG DẪN CHƠI TRỰC QUAN 4 BƯỚC</span>
-            <h3 style="font-size:15px;color:#f8fafc;margin-top:4px;">Làm Chủ Nhân Vật 3D, Bộ Não Token & Đấu Trường AI Chỉ Trong 60 Giây</h3>
+            <span class="quest-ribbon-tag">🧭 HƯỚNG DẪN CHƠI • CẨM NANG 4 BƯỚC LÀM CHỦ ĐẤU TRƯỜNG AI 3D</span>
+            <h3 style="font-size:15px;color:#f8fafc;margin-top:4px;">Cách Điều Khiển Nhân Vật AI 3D, Vận Hành Bộ Não Token & Chiến Thắng Speed War</h3>
           </div>
-          <span class="badge-cyan">Chuẩn Responsive: PC • Tablet • Điện Thoại</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-cyber btn-sm" onclick="window.goScreen('JOB_MARKET')">📋 Mở Nhiệm Vụ Hợp Đồng</button>
+            <button class="btn-cyber btn-sm" onclick="window.goScreen('SPEED_WAR')">⚔️ Vào Đấu Trường AI</button>
+          </div>
         </div>
 
         <div class="player-guide-grid">
@@ -1505,24 +1508,17 @@ function renderActiveScreen() {
           `).join('')}
         </div>
       </div>
-
-      <!-- PHẦN 3: TRUNG TÂM MENU HÌNH ẢNH 16 TÍNH NĂNG (VISUAL COMMAND HUB) -->
-      <div class="holo-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-          <h3>🎛️ TRUNG TÂM MENU HÌNH ẢNH HOLOGRAM (16 PHÂN KHU CHỨC NĂNG)</h3>
-          <span class="badge-ok">Chạm vào thẻ hình ảnh bất kỳ để mở ngay</span>
-        </div>
-        <div class="visual-hub-grid">
-          ${VISUAL_MENU_ITEMS.map(item => `
-            <div class="visual-hub-card" style="background:${item.bg};border-color:${item.accent}88;" onclick="window.goScreen('${item.screen}')">
-              <span class="vtile-badge" style="color:${item.accent};border:1px solid ${item.accent}66;">${item.subTag}</span>
-              <div class="visual-hub-art">${item.artSvg}</div>
-              <strong style="font-size:13.5px;color:#f8fafc;">${item.icon} ${item.shortTitle}</strong>
-            </div>
-          `).join('')}
-        </div>
-      </div>
     `;
+
+    // Mount real-time 60 FPS Three.js 3D AI Character + 3D Quantum Token Brain Stage
+    requestAnimationFrame(() => {
+      mountHome3dCharacterStage({
+        canvasId: 'home-3d-character-canvas',
+        archetypeId: activeArch.id,
+        playerName: st.currentUser?.display_name || 'Chỉ Huy AI',
+        tokenBalance: walletBal
+      });
+    });
 
     document.getElementById('form-home-login')?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1531,7 +1527,7 @@ function renderActiveScreen() {
       try {
         await apiCall('/api/auth/login', 'POST', payload);
         soundStudio.playPortalWhoosh();
-        showToast(`🔓 Đăng nhập thành công! Chào mừng Chỉ Huy "${payload.username}" kết nối Bộ Não Token!`, 'success');
+        showToast(`🔓 Logon thành công! Chào mừng Chỉ Huy "${payload.username}" kết nối Nhân Vật AI 3D!`, 'success');
         renderActiveScreen();
       } catch (err) {
         showToast(err.message, 'error');
@@ -1548,9 +1544,14 @@ function renderActiveScreen() {
       }
       try {
         await apiCall('/api/auth/register', 'POST', payload);
+        // Apply currently selected 3D AI Archetype on the Home Screen to the newly registered player
+        await apiCall('/api/character/update', 'POST', {
+          userId: AppState.currentUserId,
+          avatarStyle: activeArch.id,
+          primaryColor: activeArch.primary
+        }).catch(() => {});
         soundStudio.playWinFanfare(0);
-        showToast(`🎉 Tạo tài khoản "${payload.username}" thành công & nạp +500 💎 vào Bộ Não Token!`, 'success');
-        AppState.homeAuthTab = 'LOGIN';
+        showToast(`🎉 Đăng ký thành công tài khoản "${payload.username}", tạo Nhân Vật 3D ${activeArch.titleVi} & nhận +500 💎 Token!`, 'success');
         renderActiveScreen();
       } catch (err) {
         showToast(err.message, 'error');
@@ -3173,10 +3174,10 @@ window.selectCharacterArchetype = async (archetypeId, primaryHex) => {
 };
 
 window.selectHomeBrainChar = (archetypeId) => {
-  if (!AI_ARCHETYPES[archetypeId]) return;
+  const arch = AI_ARCHETYPES[archetypeId];
+  if (!arch) return;
   AppState.homeBrainArchId = archetypeId;
-  soundStudio.playUiClick('confirm');
-  renderActiveScreen();
+  window.selectCharacterArchetype(archetypeId, arch.primary);
 };
 
 window.switchHomeAuthTab = (tabName) => {

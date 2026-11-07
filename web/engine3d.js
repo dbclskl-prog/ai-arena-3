@@ -2815,3 +2815,336 @@ export function startThreeJsWorld({
 
   requestAnimationFrame(animate);
 }
+
+/* ============================================================================
+ * 10. INTERACTIVE 3D HOME STAGE: 3D AI CHARACTER + 3D QUANTUM TOKEN BRAIN
+ * ============================================================================ */
+let homeStageCtx = null;
+
+export function mountHome3dCharacterStage({
+  canvasId = 'home-3d-character-canvas',
+  archetypeId = 'DAI_SU',
+  playerName = 'Chỉ Huy AI',
+  tokenBalance = 1250
+} = {}) {
+  const THREE = window.THREE;
+  const canvas = document.getElementById(canvasId);
+  if (!THREE || !canvas) return;
+
+  const morphKey = resolveMorphologyKey(archetypeId, 'CODER');
+  const morphCfg = MORPHOLOGY_CONFIG[morphKey] || MORPHOLOGY_CONFIG.DAI_SU;
+
+  // Reuse existing WebGLRenderer if mounted on the same canvas element
+  if (!homeStageCtx || homeStageCtx.canvas !== canvas) {
+    if (homeStageCtx && homeStageCtx.renderer) {
+      try {
+        homeStageCtx.renderer.dispose();
+      } catch (_e) {
+        // ignore dispose error
+      }
+    }
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.28;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 16 / 10, 0.1, 100);
+    camera.position.set(0, 2.85, 6.9);
+    camera.lookAt(0, 2.25, 0);
+
+    // Studio 3-Point Cyber-Aurora Lighting
+    const hemiLight = new THREE.HemisphereLight(0xa5f3fc, 0x1e1b4b, 1.35);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
+    keyLight.position.set(4, 7, 6);
+    scene.add(keyLight);
+
+    const rimGold = new THREE.PointLight(0xfbbf24, 3.2, 16);
+    rimGold.position.set(-4, 4.5, -2.5);
+    scene.add(rimGold);
+
+    const fillMagenta = new THREE.PointLight(0xe879f9, 2.8, 16);
+    fillMagenta.position.set(4, 3.2, -2);
+    scene.add(fillMagenta);
+
+    // 3D Cyber-Aurora Pedestal under the 3D AI Character
+    const pedestalGroup = new THREE.Group();
+    pedestalGroup.position.set(0, 0, 0.35);
+    scene.add(pedestalGroup);
+
+    const baseCylinder = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.65, 1.92, 0.22, 32),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.78, roughness: 0.25 })
+    );
+    baseCylinder.position.y = -0.11;
+    pedestalGroup.add(baseCylinder);
+
+    const outerGlowRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.78, 0.055, 12, 48),
+      new THREE.MeshBasicMaterial({ color: 0x00e5ff })
+    );
+    outerGlowRing.rotation.x = Math.PI / 2;
+    outerGlowRing.position.y = 0.02;
+    pedestalGroup.add(outerGlowRing);
+
+    const innerGoldRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.28, 0.04, 10, 36),
+      new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
+    );
+    innerGoldRing.rotation.x = Math.PI / 2;
+    innerGoldRing.position.y = 0.04;
+    pedestalGroup.add(innerGoldRing);
+
+    // 3D QUANTUM TOKEN BRAIN (`BỘ NÃO TOKEN 3D`) Floating Above/Behind Character
+    const brainRoot = new THREE.Group();
+    brainRoot.position.set(0, 4.15, -0.95);
+    scene.add(brainRoot);
+
+    const brainSolidMatL = new THREE.MeshStandardMaterial({
+      color: 0x00e5ff,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.75,
+      roughness: 0.25,
+      metalness: 0.55,
+      transparent: true,
+      opacity: 0.78
+    });
+    const brainSolidMatR = new THREE.MeshStandardMaterial({
+      color: 0xa855f7,
+      emissive: 0x7e22ce,
+      emissiveIntensity: 0.75,
+      roughness: 0.25,
+      metalness: 0.55,
+      transparent: true,
+      opacity: 0.78
+    });
+    const brainWireMat = new THREE.MeshBasicMaterial({
+      color: 0xfde047,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.55
+    });
+
+    // Left 3D Cerebral Hemisphere
+    const hemiGeo = new THREE.IcosahedronGeometry(0.68, 2);
+    const leftLobe = new THREE.Mesh(hemiGeo, brainSolidMatL);
+    leftLobe.scale.set(0.84, 0.92, 1.24);
+    leftLobe.position.set(-0.52, 0, 0);
+    brainRoot.add(leftLobe);
+
+    const leftWire = new THREE.Mesh(hemiGeo, brainWireMat);
+    leftWire.scale.set(0.87, 0.95, 1.27);
+    leftWire.position.set(-0.52, 0, 0);
+    brainRoot.add(leftWire);
+
+    // Right 3D Cerebral Hemisphere
+    const rightLobe = new THREE.Mesh(hemiGeo, brainSolidMatR);
+    rightLobe.scale.set(0.84, 0.92, 1.24);
+    rightLobe.position.set(0.52, 0, 0);
+    brainRoot.add(rightLobe);
+
+    const rightWire = new THREE.Mesh(hemiGeo, brainWireMat);
+    rightWire.scale.set(0.87, 0.95, 1.27);
+    rightWire.position.set(0.52, 0, 0);
+    brainRoot.add(rightWire);
+
+    // Central Spinning 3D Token Core Diamond (`💎`)
+    const tokenCoreMat = new THREE.MeshStandardMaterial({
+      color: 0xfde047,
+      emissive: 0xf59e0b,
+      emissiveIntensity: 1.35,
+      roughness: 0.1
+    });
+    const tokenDiamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.38, 0), tokenCoreMat);
+    brainRoot.add(tokenDiamond);
+
+    // Gyro Rings around the 3D Token Brain
+    const brainRing1 = new THREE.Mesh(
+      new THREE.TorusGeometry(1.38, 0.035, 10, 42),
+      new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.72 })
+    );
+    brainRing1.rotation.x = Math.PI / 2.6;
+    brainRoot.add(brainRing1);
+
+    const brainRing2 = new THREE.Mesh(
+      new THREE.TorusGeometry(1.58, 0.03, 10, 42),
+      new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.65 })
+    );
+    brainRing2.rotation.y = Math.PI / 3;
+    brainRoot.add(brainRing2);
+
+    // 3D Neural Energy Beams connecting the 3D Token Brain into the 3D AI Character
+    const neuralBeamsGroup = new THREE.Group();
+    scene.add(neuralBeamsGroup);
+
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xfde047,
+      transparent: true,
+      opacity: 0.65
+    });
+    // Center neural beam from Brain `(0, 4.15, -0.95)` to Character Head `(0, 2.65, 0.35)`
+    const centerBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 2.05, 8), beamMat);
+    centerBeam.position.set(0, 3.35, -0.30);
+    centerBeam.rotation.x = 0.58;
+    neuralBeamsGroup.add(centerBeam);
+
+    // 6 Traveling 3D Token Energy Orbs along the Neural Conduit from Brain to Character
+    const synapsePulses = [];
+    for (let i = 0; i < 6; i++) {
+      const pulseMesh = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.11, 0),
+        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xfde047 : 0x00e5ff })
+      );
+      scene.add(pulseMesh);
+      synapsePulses.push({ mesh: pulseMesh, offset: i / 6 });
+    }
+
+    const characterHolder = new THREE.Group();
+    characterHolder.position.set(0, 0.05, 0.35);
+    scene.add(characterHolder);
+
+    homeStageCtx = {
+      canvas,
+      renderer,
+      scene,
+      camera,
+      pedestalGroup,
+      outerGlowRing,
+      brainRoot,
+      tokenDiamond,
+      brainRing1,
+      brainRing2,
+      beamMat,
+      synapsePulses,
+      characterHolder,
+      heroObj: null,
+      brainLabel: null,
+      userRotY: 0,
+      isDragging: false,
+      lastX: 0
+    };
+
+    // Interactive 360° Drag-to-Rotate on the 3D Character Canvas
+    canvas.addEventListener('pointerdown', (e) => {
+      homeStageCtx.isDragging = true;
+      homeStageCtx.lastX = e.clientX;
+      canvas.setPointerCapture?.(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!homeStageCtx.isDragging) return;
+      const dx = e.clientX - homeStageCtx.lastX;
+      homeStageCtx.lastX = e.clientX;
+      homeStageCtx.userRotY += dx * 0.014;
+    });
+    const stopDrag = () => {
+      if (homeStageCtx) homeStageCtx.isDragging = false;
+    };
+    canvas.addEventListener('pointerup', stopDrag);
+    canvas.addEventListener('pointercancel', stopDrag);
+
+    // Start dedicated 60 FPS loop for the Home 3D Stage
+    let startT = performance.now();
+    const tickHomeStage = (now) => {
+      if (!homeStageCtx) return;
+      requestAnimationFrame(tickHomeStage);
+
+      // Skip rendering if canvas is hidden or detached
+      if (!document.body.contains(homeStageCtx.canvas) || homeStageCtx.canvas.clientWidth === 0) {
+        return;
+      }
+
+      const w = homeStageCtx.canvas.clientWidth;
+      const h = homeStageCtx.canvas.clientHeight || 310;
+      if (homeStageCtx.canvas.width !== Math.floor(w * Math.min(window.devicePixelRatio || 1, 2))) {
+        homeStageCtx.renderer.setSize(w, h, false);
+        homeStageCtx.camera.aspect = w / h;
+        homeStageCtx.camera.updateProjectionMatrix();
+      }
+
+      const elapsed = (now - startT) / 1000;
+
+      // Animate 3D Quantum Token Brain
+      homeStageCtx.brainRoot.position.y = 4.18 + Math.sin(elapsed * 2.2) * 0.10;
+      homeStageCtx.tokenDiamond.rotation.y = elapsed * 2.6;
+      homeStageCtx.tokenDiamond.rotation.x = elapsed * 1.4;
+      homeStageCtx.brainRing1.rotation.z = elapsed * 1.5;
+      homeStageCtx.brainRing2.rotation.x = -elapsed * 1.2;
+
+      // Animate 3D Token Synapse Pulses flowing from Brain `(0, 4.15, -0.95)` to Character `(0, 2.1, 0.35)`
+      for (const p of homeStageCtx.synapsePulses) {
+        const t = (elapsed * 0.75 + p.offset) % 1;
+        const arcX = Math.sin(t * Math.PI) * (p.offset > 0.45 ? 0.55 : -0.55);
+        p.mesh.position.set(
+          arcX,
+          4.15 + (2.05 - 4.15) * t,
+          -0.95 + (0.35 - -0.95) * t
+        );
+        p.mesh.rotation.y = elapsed * 4;
+      }
+
+      // Animate 3D AI Character Turntable & Idle Breathing
+      if (homeStageCtx.heroObj) {
+        if (!homeStageCtx.isDragging) {
+          homeStageCtx.userRotY += 0.0055;
+        }
+        homeStageCtx.heroObj.root.rotation.y = Math.sin(homeStageCtx.userRotY) * 0.65;
+        homeStageCtx.heroObj.bodyRig.position.y = Math.sin(elapsed * 3.0) * 0.06;
+        homeStageCtx.heroObj.leftArmPivot.rotation.x = Math.sin(elapsed * 2.2) * 0.16;
+        homeStageCtx.heroObj.rightArmPivot.rotation.x = -0.25 + Math.cos(elapsed * 2.2) * 0.16;
+        if (homeStageCtx.heroObj.companionDrone) {
+          homeStageCtx.heroObj.companionDrone.position.y = 2.55 + Math.sin(elapsed * 3.8) * 0.16;
+          homeStageCtx.heroObj.companionDrone.rotation.y = elapsed * 2.1;
+        }
+        animateMorphologyFX(homeStageCtx.heroObj.morphFX, elapsed, 0);
+      }
+
+      homeStageCtx.renderer.render(homeStageCtx.scene, homeStageCtx.camera);
+    };
+    requestAnimationFrame(tickHomeStage);
+  }
+
+  // Update 3D AI Character Mesh & 3D Brain Billboard inside the stage
+  while (homeStageCtx.characterHolder.children.length > 0) {
+    homeStageCtx.characterHolder.remove(homeStageCtx.characterHolder.children[0]);
+  }
+
+  const heroObj = createCyberKnightHero(THREE, {
+    name: playerName,
+    title: `${morphCfg.label} • Kết Nối Não Token`,
+    primaryColor: morphCfg.primaryHex,
+    avatarStyle: morphKey,
+    isLocal: true
+  });
+  heroObj.root.scale.set(1.08, 1.08, 1.08);
+  homeStageCtx.characterHolder.add(heroObj.root);
+  homeStageCtx.heroObj = heroObj;
+
+  if (homeStageCtx.outerGlowRing?.material) {
+    homeStageCtx.outerGlowRing.material.color.set(morphCfg.primaryHex);
+  }
+  if (homeStageCtx.beamMat) {
+    homeStageCtx.beamMat.color.set(morphCfg.primaryHex);
+  }
+
+  if (homeStageCtx.brainLabel) {
+    homeStageCtx.brainRoot.remove(homeStageCtx.brainLabel.sprite);
+  }
+  homeStageCtx.brainLabel = createBillboardSprite(
+    THREE,
+    `🧠 BỘ NÃO TOKEN 3D • 💎 ${Number(tokenBalance || 1250).toLocaleString()} TKN`,
+    `Đang truyền năng lượng cho ${morphCfg.emoji} ${morphCfg.label}`,
+    '#fde047',
+    4.6
+  );
+  homeStageCtx.brainLabel.sprite.position.set(0, 1.25, 0);
+  homeStageCtx.brainRoot.add(homeStageCtx.brainLabel.sprite);
+}
+
