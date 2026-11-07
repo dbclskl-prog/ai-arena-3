@@ -7,9 +7,9 @@ services:
     startCommand: node server.mjs
     healthCheckPath: /api/state
     envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3300
       - key: AI_ARENA_DB_PATH
         value: /tmp/ai_arena_3.sqlite

@@ -12,6 +12,6 @@
     "test": "node --test tests/e2e.test.mjs"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   }
 }
