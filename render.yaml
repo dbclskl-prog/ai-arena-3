@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ai-arena-3-skyline
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /api/state
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3300
+      - key: AI_ARENA_DB_PATH
+        value: /tmp/ai_arena_3.sqlite

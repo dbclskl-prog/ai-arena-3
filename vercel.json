@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "functions": {
+    "api/index.mjs": {
+      "includeFiles": "{database/**,ai-worker/**,shared/**,game-server/**}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.mjs"
+    },
+    {
+      "source": "/",
+      "destination": "/web/index.html"
+    },
+    {
+      "source": "/:path((?!api/|web/).*)",
+      "destination": "/web/:path"
+    }
+  ]
+}

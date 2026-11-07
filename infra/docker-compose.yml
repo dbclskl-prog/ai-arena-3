@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_arena_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aiarena
+      POSTGRES_PASSWORD: aiarena_secure_password
+      POSTGRES_DB: ai_arena_3
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai_arena_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: ai_arena_server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3300
+      DATABASE_URL: ${DATABASE_URL:-postgresql://aiarena:aiarena_dev_only@postgres:5432/ai_arena_3}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    ports:
+      - "3300:3300"
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  pgdata:

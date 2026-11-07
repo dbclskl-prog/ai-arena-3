@@ -1,0 +1,17 @@
+{
+  "name": "ai-arena-3-0",
+  "version": "3.0.0",
+  "description": "Đấu Trường AI - AI Arena 3.0: 3D Multiplayer Game with Autonomous AI Ecosystem",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "publish:live": "node publish-live.mjs",
+    "vercel:deploy": "npx vercel --prod --yes",
+    "seed": "node database/seed.mjs",
+    "test": "node --test tests/e2e.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

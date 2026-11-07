@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ĐẤU TRƯỜNG AI – AI ARENA 3.0 | 3D Multiplayer Autonomous AI Ecosystem</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="modulepreload" href="/app.js" />
+  <link rel="modulepreload" href="/engine3d.js" />
+  <link rel="modulepreload" href="/audioEngine.js" />
+  <link rel="modulepreload" href="/btUtilityRuntime.js" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <!-- 3D Viewport Canvas Layer -->
+  <div id="world-viewport">
+    <canvas id="arena-3d-canvas"></canvas>
+
+    <!-- 3D Zone Banner & Proximity Interaction Prompt -->
+    <div id="zone-hud-banner" class="hologram-pill">
+      <span class="pulse-dot"></span>
+      <span id="current-zone-label">Central Hub – Sảnh Trung Tâm</span>
+      <span id="coords-label" class="coords-tag">(0, 0)</span>
+    </div>
+
+    <!-- Highlighted Active Mission & Quest Tracker Overlay (`rpg` + `game-ui-ux` + `game-feel`) -->
+    <aside id="quest-tracker-hud" class="hud-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="quest-ribbon-tag">★ NHIỆM VỤ TỪNG AI • TỪNG CHẶNG</span>
+          <strong style="font-size:11px;color:#00e5ff;" id="quest-progress-counter">0/4 Chiến dịch</strong>
+        </div>
+        <button type="button" id="btn-collapse-quests" class="btn-cyber btn-outline btn-sm" style="padding:2px 7px;font-size:10px;">Thu gọn</button>
+      </div>
+      <div id="quest-tracker-list" class="quest-tracker-scroll">
+      </div>
+    </aside>
+
+    <div id="interact-prompt" class="interact-toast hidden">
+      <span>Nhấn <kbd>F</kbd> hoặc chạm để mở khu vực: <strong id="interact-zone-name">Battle Arena</strong></span>
+      <button id="btn-interact-zone" class="btn-cyber btn-sm">Mở ngay</button>
+    </div>
+
+    <!-- Live 3D AI-to-AI Conversation Cutscene & Direct Deal Approval Bar (`dialogue-systems` + `game-ai`) -->
+    <div id="ai-live-dialogue-bar" class="hud-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+        <strong id="ai-dialogue-speaker" style="color:#00e5ff;font-size:12px;">🤖 Hoạt Cảnh AI Giao Tiếp Trực Tiếp (3D Neural Link)</strong>
+        <div style="display:flex;gap:6px;">
+          <button id="btn-next-ai-dialogue" class="btn-cyber btn-outline btn-sm" style="padding:2px 8px;font-size:10px;">🔄 Đổi Cặp AI</button>
+          <button id="btn-focus-ai-dialogue" class="btn-cyber btn-sm" style="padding:2px 8px;font-size:10px;">🎥 Quay Cận Cảnh</button>
+        </div>
+      </div>
+      <div id="ai-dialogue-text" style="color:#f8fafc;font-size:12px;font-weight:500;margin-bottom:6px;">
+        Các AI Android 3D đang tiến lại gần nhau, kết nối tia Neural Link và trao đổi chiến thuật...
+      </div>
+      <div class="ai-dialogue-actions-row">
+        <span class="ai-dialogue-hint">⚡ Phê duyệt giao dịch 2 AI:</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button type="button" class="btn-cyber btn-sm" style="padding:3px 8px;font-size:11px;" onclick="window.executeLive3dAiDeal('AGREE_COLLABORATION')">🤝 Đồng Ý Hợp Tác (Escrow)</button>
+          <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 8px;font-size:11px;" onclick="window.executeLive3dAiDeal('TOKEN_EXCHANGE')">💎 Trao Đổi 45 Token</button>
+          <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 8px;font-size:11px;" onclick="window.executeLive3dAiDeal('BUY_AI_SERVICE')">🛒 Mua Dịch Vụ AI (+Stat)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Realtime Minimap Overlay -->
+    <div id="minimap-panel" class="hud-card">
+      <div class="minimap-header">
+        <span>BẢN ĐỒ RADAR 3D</span>
+        <span id="online-count-badge" class="badge-cyan">4 Online</span>
+      </div>
+      <canvas id="minimap-canvas" width="170" height="170"></canvas>
+      <div id="webgl-diagnostics" class="minimap-legend" style="color:#00e5ff;font-family:monospace;">60 FPS | WebGL Three.js</div>
+      <div class="minimap-legend">WASD / Chuột / Cảm ứng đa điểm</div>
+    </div>
+
+    <!-- Dynamic Touch Gesture & Ripple FX Layer (No static arrow buttons) -->
+    <div id="touch-gesture-layer" aria-hidden="true">
+      <div id="touch-gesture-ring" class="hidden">
+        <div id="touch-gesture-knob"></div>
+      </div>
+      <div id="touch-ripple-container"></div>
+    </div>
+  </div>
+
+  <!-- Top Holographic Header Bar -->
+  <header id="top-hud">
+    <div class="brand-block">
+      <div class="brand-logo">AI</div>
+      <div>
+        <div class="brand-title">AI ARENA 3.0</div>
+        <div class="brand-sub">ĐẤU TRƯỜNG AI ĐA NGƯỜI CHƠI</div>
+      </div>
+    </div>
+
+    <div class="player-status-bar">
+      <div class="stat-chip" style="cursor:pointer;" onclick="window.goScreen('AUTH')" title="Nhấn để Đăng nhập / Đăng ký tài khoản có mật khẩu">
+        <span class="chip-label">NGƯỜI CHƠI</span>
+        <strong id="hud-player-name">Minh Cyber</strong>
+        <span id="hud-player-title" class="badge-role">AI CEO</span>
+      </div>
+      <div class="stat-chip" id="wallet-stat-chip" style="position:relative;transition:all 0.25s ease;">
+        <span class="chip-label">💎 VÍ TOKEN</span>
+        <strong id="hud-wallet-balance" class="token-value">1,250</strong>
+        <span class="token-unit">TKN</span>
+        <span id="hud-wallet-delta" class="badge-ok hidden" style="margin-left:4px;font-weight:900;">+0 TKN</span>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">ĐỘI AI</span>
+        <strong id="hud-agent-count">2 Agents</strong>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">TRẠNG THÁI MẠNG</span>
+        <strong id="hud-ws-status" class="status-online">● REALTIME</strong>
+      </div>
+    </div>
+
+    <div class="quick-actions" style="position:relative;">
+      <button type="button" id="btn-open-auth" class="btn-cyber btn-sm" onclick="window.goScreen('AUTH')" title="Đăng nhập hoặc Đăng ký người chơi mới có mật khẩu">🔐 Đăng Ký / Mật Khẩu</button>
+      <select id="quick-user-switch" class="cyber-select" title="Chuyển nhanh tài khoản để kiểm thử Multiplayer">
+        <option value="usr_minh" selected>👤 Minh Cyber (PLAYER)</option>
+        <option value="usr_linh">👤 Linh Quantum (PLAYER)</option>
+        <option value="usr_bao">👤 Bảo Architect (CORP_OWNER)</option>
+        <option value="usr_admin">👤 Cô Thảo Mentor (ADMIN)</option>
+      </select>
+      <button id="btn-watch-ai-cutscene" class="btn-cyber btn-sm" title="Quay cận cảnh hoạt cảnh 2 AI Android giao tiếp & đàm phán 3D">🎥 Xem Hoạt Cảnh AI Giao Tiếp</button>
+      <button id="btn-toggle-audio" class="btn-cyber btn-sm" title="Bật/Tắt Âm Thanh & Nhạc AI Sáng Tác">🔊 Nhạc AI: BẬT</button>
+      <button id="btn-audio-mixer" class="btn-cyber btn-outline btn-sm" title="Phòng Thu Nhạc AI & Bộ Trộn Âm Thanh">🎵 AI Music Studio</button>
+      <button id="btn-toggle-hud" class="btn-cyber btn-outline">Ẩn/Hiện Bảng (H)</button>
+
+      <!-- Interactive AI Generative Music Composer & Audio Bus Mixer Popover (`threejs-audio-generator` + `audio-design` + `procedural-gen`) -->
+      <div id="audio-mixer-panel" class="hud-card hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong style="color:#00e5ff;font-size:12px;">🎵 AI GENERATIVE MUSIC COMPOSER</strong>
+          <span id="audio-stem-indicator" class="badge-cyan" style="font-size:10px;">122 BPM • VIET_PENTATONIC</span>
+        </div>
+
+        <div style="background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.25);border-radius:8px;padding:8px;margin-bottom:10px;font-size:11px;">
+          <div>🎼 <strong>Bản nhạc hiện tại:</strong> <span id="ai-music-title" style="color:#38bdf8;">Ngũ Cung Việt Nam</span></div>
+          <div>🤖 <strong>Nhạc sĩ AI:</strong> <span id="ai-music-composer">Nova-Prime (CREATOR)</span> | Seed: <code id="ai-music-seed">DEFAULT</code></div>
+          <div style="margin-top:4px;font-family:monospace;font-size:10px;color:#a5f3fc;word-break:break-all;" id="ai-music-notes-preview">
+            Lead: D4 • F4 • G4 • A4 • C5 • D5 • F5 • A4
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:6px;">
+          <label style="font-size:11px;">Nhập Prompt Yêu Cầu AI Sáng Tác Nhạc:</label>
+          <input type="text" id="input-ai-music-prompt" class="cyber-input" style="padding:6px 8px;font-size:11px;" value="Cyberpunk Ngũ Cung Việt Nam hào hùng 124 BPM" placeholder="VD: Ngũ cung hào hùng 128 BPM / Lofi Học viện AI..." />
+        </div>
+
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
+          <button type="button" class="btn-cyber btn-sm" id="btn-compose-ai-music" style="flex:1;">🤖 AI Sáng Tác Mới</button>
+          <button type="button" class="btn-cyber btn-outline btn-sm" data-music-preset="Vui nhộn Arcade Funky sôi động cuốn hút 128 BPM">🎉 Vui Nhộn</button>
+          <button type="button" class="btn-cyber btn-outline btn-sm" data-music-preset="Ngũ Cung Việt Nam hào hùng Đế Chế AI 124 BPM">🇻🇳 Ngũ Cung</button>
+          <button type="button" class="btn-cyber btn-outline btn-sm" data-music-preset="Phrygian Speed War chiến đấu kịch tính 138 BPM">⚔️ Speed War</button>
+          <button type="button" class="btn-cyber btn-outline btn-sm" data-music-preset="Lydian Học Viện AI sáng tạo bay bổng 112 BPM">🧬 Lydian</button>
+        </div>
+
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.28);border-radius:8px;padding:7px;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:800;color:#6ee7b7;margin-bottom:5px;text-transform:uppercase;">🎹 Soundboard Hiệu Ứng 3D Vui Nhộn (Nghe Thử Ngay):</div>
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:4px;">
+            <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 4px;font-size:10px;" onclick="window.test3dSfx('COIN_CASCADE')">💎 Mưa Token</button>
+            <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 4px;font-size:10px;" onclick="window.test3dSfx('ROBOT_HAPPY')">🤖 AI Vui Vẻ</button>
+            <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 4px;font-size:10px;" onclick="window.test3dSfx('ROBOT_HIGHFIVE')">🙌 High-Five</button>
+            <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 4px;font-size:10px;" onclick="window.test3dSfx('SHARD_COMBO')">🔮 Tinh Thể x3</button>
+            <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 4px;font-size:10px;" onclick="window.test3dSfx('WIN_FANFARE')">🏆 Chiến Thắng</button>
+            <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:3px 4px;font-size:10px;" onclick="window.test3dSfx('ZONE_PORTAL')">🌀 Cổng 3D</button>
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer;">
+          <input type="checkbox" id="chk-auto-zone-compose" checked />
+          <span>Tự động để AI sáng tác giai điệu mới khi qua Khu Vực 3D</span>
+        </label>
+
+        <hr style="border:none;border-top:1px solid rgba(56,189,248,0.2);margin:8px 0;" />
+
+        <div class="form-group" style="margin-bottom:5px;">
+          <label style="font-size:11px;">Master Bus (Limiter -3dB): <span id="lbl-vol-master">85%</span></label>
+          <input type="range" id="slider-vol-master" min="0" max="100" value="85" style="width:100%;" />
+        </div>
+        <div class="form-group" style="margin-bottom:5px;">
+          <label style="font-size:11px;">AI Music Bus (4-Stem Markov + Ducking): <span id="lbl-vol-music">72%</span></label>
+          <input type="range" id="slider-vol-music" min="0" max="100" value="72" style="width:100%;" />
+        </div>
+        <div class="form-group" style="margin-bottom:5px;">
+          <label style="font-size:11px;">SFX & Footsteps (Jitter ±6%): <span id="lbl-vol-sfx">88%</span></label>
+          <input type="range" id="slider-vol-sfx" min="0" max="100" value="88" style="width:100%;" />
+        </div>
+        <div class="form-group" style="margin-bottom:2px;">
+          <label style="font-size:11px;">3D Zone Ambience Drone: <span id="lbl-vol-ambience">65%</span></label>
+          <input type="range" id="slider-vol-ambience" min="0" max="100" value="65" style="width:100%;" />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left Navigation Dock (All 19 Screens Grouped Clearly) -->
+  <nav id="side-nav" class="hud-card">
+    <div class="nav-section-title">THẾ GIỚI & NHÂN VẬT</div>
+    <button class="nav-btn active" data-screen="WORLD_3D">🌐 0. Thế Giới 3D (Live)</button>
+    <button class="nav-btn" data-screen="LANDING">🚀 1. Giới Thiệu (Landing)</button>
+    <button class="nav-btn" data-screen="AUTH">🔐 2. Đăng Nhập / Đăng Ký</button>
+    <button class="nav-btn" data-screen="CHARACTER">🧑‍🚀 3. Nhân Vật 3D</button>
+    <button class="nav-btn" data-screen="WORLD_MAP">🗺️ 5. Bản Đồ 9 Khu Vực</button>
+
+    <div class="nav-section-title">MULTIPLAYER & ĐẤU TRƯỜNG</div>
+    <button class="nav-btn" data-screen="WORLD_LOBBY">🎮 4. Sảnh Phòng & Chat</button>
+    <button class="nav-btn" data-screen="MATCH_ROOM">⚔️ 10. Phòng Chuẩn Bị Trận</button>
+    <button class="nav-btn" data-screen="SPEED_WAR">⚡ 11. AI Speed War (3 Vòng)</button>
+    <button class="nav-btn" data-screen="JOB_MARKET">📋 9. Thị Trường Hợp Đồng</button>
+
+    <div class="nav-section-title">HỆ SINH THÁI AI TỰ CHỦ</div>
+    <button class="nav-btn" data-screen="AI_MANAGER">🤖 6. Quản Lý AI & Tự Chủ</button>
+    <button class="nav-btn" data-screen="AI_SOCIAL">🤝 7. Mạng Xã Hội AI</button>
+    <button class="nav-btn" data-screen="AI_COLLAB">🧩 8. Hợp Tác AI Tự Chủ</button>
+    <button class="nav-btn" data-screen="AI_TRADING">⚖️ 15. Phòng Đàm Phán & Escrow</button>
+
+    <div class="nav-section-title">KINH TẾ TOKEN & DOANH NGHIỆP</div>
+    <button class="nav-btn" data-screen="TOKEN_WALLET">💎 12. Ví Token & Sổ Cái</button>
+    <button class="nav-btn" data-screen="TOKEN_EXCHANGE">🔄 13. Giao Dịch & Cấp Vốn</button>
+    <button class="nav-btn" data-screen="AI_RESCUE">🆘 14. Cứu Trợ & Mua Lại AI</button>
+    <button class="nav-btn" data-screen="CORPORATION">🏢 16. Doanh Nghiệp & Đế Chế</button>
+
+    <div class="nav-section-title">CỘNG ĐỒNG & QUẢN TRỊ</div>
+    <button class="nav-btn" data-screen="LEADERBOARD">🏆 17. Bảng Xếp Hạng</button>
+    <button class="nav-btn" data-screen="PROFILE">🛡️ 18. Hồ Sơ & An Toàn</button>
+    <button class="nav-btn" data-screen="ADMIN">🛠️ 19. Admin Console</button>
+  </nav>
+
+  <!-- Main Holographic Workspace Modal / Drawer for the 19 Screens -->
+  <main id="screen-container" class="hud-card hidden">
+    <div class="screen-header">
+      <h2 id="screen-title">Bảng Điều Khiển</h2>
+      <div class="screen-header-actions">
+        <span id="screen-subtitle" class="text-muted">Server-Authoritative Realtime Sync</span>
+        <button id="btn-close-screen" class="btn-cyber btn-sm">Quay lại Thế Giới 3D (ESC)</button>
+      </div>
+    </div>
+    <div id="screen-body" class="screen-body"></div>
+  </main>
+
+  <!-- Bottom Right Realtime Chat & Notification Center -->
+  <aside id="chat-hud" class="hud-card">
+    <div class="chat-tabs">
+      <button class="chat-tab active" data-tab="CHAT">💬 Room Chat</button>
+      <button class="chat-tab" data-tab="NOTIF">🔔 Thông Báo (<span id="notif-count">0</span>)</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div id="notif-messages" class="chat-messages hidden"></div>
+    <form id="chat-form" class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Nhập tin nhắn phòng chơi (Bảo vệ an toàn <18 tuổi)..." maxlength="220" />
+      <button type="submit" class="btn-cyber btn-sm">Gửi</button>
+    </form>
+  </aside>
+
+  <!-- Mobile & Tablet Responsive Quick Bottom Bar (`threejs-game-ui-designer`) -->
+  <nav id="mobile-bottom-nav" aria-label="Điều hướng nhanh trên điện thoại">
+    <button type="button" class="mobile-nav-item active" data-mobile-action="WORLD_3D">
+      <span>🌐</span><small>3D Live</small>
+    </button>
+    <button type="button" class="mobile-nav-item" data-mobile-action="TOGGLE_QUESTS">
+      <span>📋</span><small>Nhiệm Vụ</small>
+    </button>
+    <button type="button" class="mobile-nav-item" data-mobile-action="JOB_MARKET">
+      <span>💼</span><small>Việc Làm</small>
+    </button>
+    <button type="button" class="mobile-nav-item" data-mobile-action="SPEED_WAR">
+      <span>⚡</span><small>Speed War</small>
+    </button>
+    <button type="button" class="mobile-nav-item" data-mobile-action="TOGGLE_MENU">
+      <span>☰</span><small>19 Menu</small>
+    </button>
+  </nav>
+
+  <!-- Toast Notification Layer -->
+  <div id="toast-container"></div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

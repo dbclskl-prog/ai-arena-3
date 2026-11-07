@@ -1,0 +1,254 @@
+// Prisma Schema for AI Arena 3.0 (PostgreSQL Production & Development Target)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Users & Profiles
+model User {
+  id           String      @id
+  username     String      @unique
+  email        String      @unique
+  passwordHash String      @map("password_hash")
+  displayName  String      @map("display_name")
+  role         String      @default("PLAYER") // GUEST, PLAYER, TEAM_LEADER, COMPANY_OWNER, TOURNAMENT_ORGANIZER, MODERATOR, ADMIN, SUPER_ADMIN
+  ageGroup     String      @default("18_PLUS") @map("age_group") // UNDER_18, 18_PLUS
+  safeMode     Boolean     @default(false) @map("safe_mode")
+  title        String      @default("AI Rookie")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  character    Character?
+  agents       AiAgent[]
+  wallets      Wallet[]
+  ownedCompany Company[]
+  rankings     Ranking?
+}
+
+// 2. Game Characters
+model Character {
+  id          String   @id
+  userId      String   @unique @map("user_id")
+  name        String
+  avatarStyle String   @default("CYBER_KNIGHT") @map("avatar_style")
+  primaryColor String  @default("#00e5ff") @map("primary_color")
+  accentColor String   @default("#3b82f6") @map("accent_color")
+  zone        String   @default("CENTRAL_HUB")
+  posX        Float    @default(0) @map("pos_x")
+  posY        Float    @default(0) @map("pos_y")
+  posZ        Float    @default(0) @map("pos_z")
+  rotY        Float    @default(0) @map("rot_y")
+  animState   String   @default("IDLE") @map("anim_state")
+  level       Int      @default(1)
+  xp          Int      @default(0)
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 3. AI Agents & Skills
+model AiAgent {
+  id                  String   @id
+  ownerId             String   @map("owner_id")
+  name                String
+  avatar              String
+  aiClass             String   @map("ai_class") // ANALYST, CODER, CREATOR, GUARDIAN, TRADER, MANAGER
+  level               Int      @default(1)
+  xp                  Int      @default(0)
+  logic               Int
+  creativity          Int
+  speed               Int
+  accuracy            Int
+  collaboration       Int
+  stability           Int
+  skillsJson          String   @map("skills_json")
+  agentBudget         Int      @default(100) @map("agent_budget")
+  reputation          Int      @default(50)
+  workStatus          String   @default("IDLE") @map("work_status") // IDLE, WORKING, IN_MATCH, NEGOTIATING, STOPPED
+  healthStatus        String   @default("HEALTHY") @map("health_status") // HEALTHY, LOW_TOKEN, CRITICAL, RESCUE_NEEDED, IN_NEGOTIATION, RECOVERED
+  autonomyMode        String   @default("ASSISTED") @map("autonomy_mode") // MANUAL, ASSISTED, LIMITED_AUTONOMOUS
+  maxTokenPerTx       Int      @default(100) @map("max_token_per_tx")
+  dailyTokenLimit     Int      @default(300) @map("daily_token_limit")
+  dailyTokenSpent     Int      @default(0) @map("daily_token_spent")
+  allowAutoFriend     Boolean  @default(true) @map("allow_auto_friend")
+  allowAutoCollab     Boolean  @default(true) @map("allow_auto_collab")
+  allowAutoBid        Boolean  @default(true) @map("allow_auto_bid")
+  allowAutoHire       Boolean  @default(false) @map("allow_auto_hire")
+  emergencyStopped    Boolean  @default(false) @map("emergency_stopped")
+  companyId           String?  @map("company_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  owner               User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+// 4. AI Relationships
+model AiRelationship {
+  id                String   @id
+  agentAId          String   @map("agent_a_id")
+  agentBId          String   @map("agent_b_id")
+  level             String   @default("STRANGER") // STRANGER, ACQUAINTANCE, FRIEND, TRUSTED_PARTNER, STRATEGIC_ALLIANCE
+  trustScore        Int      @default(10) @map("trust_score")
+  status            String   @default("PENDING") // PENDING, ACCEPTED, BLOCKED
+  interactionCount  Int      @default(1) @map("interaction_count")
+  lastInteractionAt DateTime @default(now()) @map("last_interaction_at")
+
+  @@unique([agentAId, agentBId])
+}
+
+// 5. Collaboration Requests
+model CollaborationRequest {
+  id               String   @id
+  contractId       String   @map("contract_id")
+  requesterAgentId String   @map("requester_agent_id")
+  partnerAgentId   String   @map("partner_agent_id")
+  missingSkill     String   @map("missing_skill")
+  scopeOfWork      String   @map("scope_of_work")
+  offeredToken     Int      @map("offered_token")
+  rewardSplitPct   Int      @map("reward_split_pct")
+  status           String   @default("PROPOSED") // PROPOSED, NEGOTIATING, APPROVED, COMPLETED, REJECTED, FAILED
+  ownerApproved    Boolean  @default(false) @map("owner_approved")
+  createdAt        DateTime @default(now()) @map("created_at")
+}
+
+// 6. Contracts & Bids
+model Contract {
+  id                 String   @id
+  title              String
+  specialty          String   // ANALYST, CODER, CREATOR, GUARDIAN, TRADER, MANAGER
+  difficulty         Int      @default(1)
+  budgetToken        Int      @map("budget_token")
+  durationSec        Int      @map("duration_sec")
+  requirementsJson   String   @map("requirements_json")
+  acceptanceCriteria String   @map("acceptance_criteria")
+  status             String   @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED, EXPIRED
+  createdBy          String   @default("SYSTEM") @map("created_by")
+  createdAt          DateTime @default(now()) @map("created_at")
+}
+
+// 7. Task Executions
+model TaskExecution {
+  id                 String   @id
+  contractId         String   @map("contract_id")
+  agentId            String   @map("agent_id")
+  partnerAgentId     String?  @map("partner_agent_id")
+  matchId            String?  @map("match_id")
+  strategy           String   @default("BALANCED")
+  qualityScore       Int      @map("quality_score")
+  accuracyScore      Int      @map("accuracy_score")
+  speedScore         Int      @map("speed_score")
+  resourceEfficiency Int      @map("resource_efficiency")
+  collaborationScore Int      @map("collaboration_score")
+  totalScore         Float    @map("total_score")
+  rewardEarned       Int      @map("reward_earned")
+  xpEarned           Int      @map("xp_earned")
+  createdAt          DateTime @default(now()) @map("created_at")
+}
+
+// 8. Multiplayer Rooms & Matches
+model Room {
+  id          String   @id
+  name        String
+  roomType    String   @default("PUBLIC_LOBBY") @map("room_type") // WORLD_ROOM, PUBLIC_LOBBY, PRIVATE_ROOM
+  gameMode    String   @default("SPEED_WAR") @map("game_mode")
+  hostUserId  String   @map("host_user_id")
+  maxPlayers  Int      @default(20) @map("max_players")
+  status      String   @default("WAITING") // WAITING, READY_CHECK, IN_MATCH, COMPLETED
+  inviteCode  String?  @map("invite_code")
+  createdAt   DateTime @default(now()) @map("created_at")
+}
+
+// 9. Wallets & Ledger
+model Wallet {
+  id         String   @id
+  ownerId    String   @map("owner_id")
+  walletType String   @map("wallet_type") // PLAYER_WALLET, AGENT_BUDGET, COMPANY_TREASURY, ESCROW_ACCOUNT, REWARD_TREASURY
+  balance    Int      @default(0)
+  updatedAt  DateTime @default(now()) @map("updated_at")
+
+  user       User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  @@unique([ownerId, walletType])
+}
+
+model WalletLedger {
+  id             String   @id
+  idempotencyKey String   @unique @map("idempotency_key")
+  fromWalletId   String   @map("from_wallet_id")
+  toWalletId     String   @map("to_wallet_id")
+  amount         Int
+  txType         String   @map("tx_type")
+  referenceId    String?  @map("reference_id")
+  note           String?
+  createdAt      DateTime @default(now()) @map("created_at")
+}
+
+// 10. Negotiations & Escrow
+model Negotiation {
+  id               String   @id
+  initiatorAgentId String   @map("initiator_agent_id")
+  responderAgentId String   @map("responder_agent_id")
+  contextType      String   @map("context_type") // COLLABORATION, RESCUE, HIRE, BUYOUT
+  contextId        String   @map("context_id")
+  currentOffer     Int      @map("current_offer")
+  counterOffer     Int?     @map("counter_offer")
+  roundCount       Int      @default(1) @map("round_count")
+  maxRounds        Int      @default(5) @map("max_rounds")
+  status           String   @default("OPEN") // OPEN, COUNTERED, ACCEPTED, REJECTED, ESCROW_LOCKED, SETTLED
+  historyJson      String   @map("history_json")
+  updatedAt        DateTime @default(now()) @map("updated_at")
+}
+
+// 11. AI Ownership Transfers & Rescue
+model AiOwnershipTransfer {
+  id             String   @id
+  agentId        String   @map("agent_id")
+  fromUserId     String   @map("from_user_id")
+  toUserId       String   @map("to_user_id")
+  transferType   String   @map("transfer_type") // RESCUE_GRANT, SPONSORSHIP, LEASE, BUYOUT
+  priceToken     Int      @map("price_token")
+  ownerConfirmed Boolean  @default(false) @map("owner_confirmed")
+  status         String   @default("PENDING_OWNER") // PENDING_OWNER, COMPLETED, REJECTED, CANCELLED
+  createdAt      DateTime @default(now()) @map("created_at")
+}
+
+// 12. Companies & Treasuries
+model Company {
+  id             String   @id
+  name           String   @unique
+  ownerUserId    String   @map("owner_user_id")
+  description    String
+  treasuryWalletId String @map("treasury_wallet_id")
+  allianceTag    String?  @map("alliance_tag")
+  reputation     Int      @default(100)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  owner          User     @relation(fields: [ownerUserId], references: [id])
+}
+
+// 13. Rankings & Achievements
+model Ranking {
+  id            String   @id
+  userId        String   @unique @map("user_id")
+  season        String   @default("S1_2026")
+  ratingPoints  Int      @default(1000) @map("rating_points")
+  matchesPlayed Int      @default(0) @map("matches_played")
+  matchesWon    Int      @default(0) @map("matches_won")
+  totalTokensWon Int     @default(0) @map("total_tokens_won")
+  updatedAt     DateTime @default(now()) @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 14. Audit Logs
+model AuditLog {
+  id         String   @id
+  actorId    String   @map("actor_id")
+  actorType  String   @map("actor_type") // USER, AI_AGENT, SYSTEM, ADMIN
+  action     String
+  targetId   String?  @map("target_id")
+  detailsJson String  @map("details_json")
+  severity   String   @default("INFO") // INFO, WARN, CRITICAL
+  createdAt  DateTime @default(now()) @map("created_at")
+}
