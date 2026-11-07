@@ -6,6 +6,7 @@
   <title>ĐẤU TRƯỜNG AI – AI ARENA 3.0 | 3D Multiplayer Autonomous AI Ecosystem</title>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="modulepreload" href="/app.js" />
+  <link rel="modulepreload" href="/visualAssets.js" />
   <link rel="modulepreload" href="/engine3d.js" />
   <link rel="modulepreload" href="/audioEngine.js" />
   <link rel="modulepreload" href="/btUtilityRuntime.js" />
@@ -116,7 +117,8 @@
     </div>
 
     <div class="quick-actions" style="position:relative;">
-      <button type="button" id="btn-open-auth" class="btn-cyber btn-sm" onclick="window.goScreen('AUTH')" title="Đăng nhập hoặc Đăng ký người chơi mới có mật khẩu">🔐 Đăng Ký / Mật Khẩu</button>
+      <button type="button" class="btn-cyber btn-sm" onclick="window.goScreen('LANDING')" title="Mở Trung Tâm Menu Hình Ảnh Hologram">🎛️ Menu Hình Ảnh</button>
+      <button type="button" id="btn-open-auth" class="btn-cyber btn-sm" onclick="window.goScreen('AUTH')" title="Đăng nhập hoặc Đăng ký người chơi mới có mật khẩu">🔐 Đăng Ký</button>
       <select id="quick-user-switch" class="cyber-select" title="Chuyển nhanh tài khoản để kiểm thử Multiplayer">
         <option value="usr_minh" selected>👤 Minh Cyber (PLAYER)</option>
         <option value="usr_linh">👤 Linh Quantum (PLAYER)</option>
@@ -195,37 +197,78 @@
     </div>
   </header>
 
-  <!-- Left Navigation Dock (All 19 Screens Grouped Clearly) -->
-  <nav id="side-nav" class="hud-card">
-    <div class="nav-section-title">THẾ GIỚI & NHÂN VẬT</div>
-    <button class="nav-btn active" data-screen="WORLD_3D">🌐 0. Thế Giới 3D (Live)</button>
-    <button class="nav-btn" data-screen="LANDING">🚀 1. Giới Thiệu (Landing)</button>
-    <button class="nav-btn" data-screen="AUTH">🔐 2. Đăng Nhập / Đăng Ký</button>
-    <button class="nav-btn" data-screen="CHARACTER">🧑‍🚀 3. Nhân Vật 3D</button>
-    <button class="nav-btn" data-screen="WORLD_MAP">🗺️ 5. Bản Đồ 9 Khu Vực</button>
-
-    <div class="nav-section-title">MULTIPLAYER & ĐẤU TRƯỜNG</div>
-    <button class="nav-btn" data-screen="WORLD_LOBBY">🎮 4. Sảnh Phòng & Chat</button>
-    <button class="nav-btn" data-screen="MATCH_ROOM">⚔️ 10. Phòng Chuẩn Bị Trận</button>
-    <button class="nav-btn" data-screen="SPEED_WAR">⚡ 11. AI Speed War (3 Vòng)</button>
-    <button class="nav-btn" data-screen="JOB_MARKET">📋 9. Thị Trường Hợp Đồng</button>
-
-    <div class="nav-section-title">HỆ SINH THÁI AI TỰ CHỦ</div>
-    <button class="nav-btn" data-screen="AI_MANAGER">🤖 6. Quản Lý AI & Tự Chủ</button>
-    <button class="nav-btn" data-screen="AI_SOCIAL">🤝 7. Mạng Xã Hội AI</button>
-    <button class="nav-btn" data-screen="AI_COLLAB">🧩 8. Hợp Tác AI Tự Chủ</button>
-    <button class="nav-btn" data-screen="AI_TRADING">⚖️ 15. Phòng Đàm Phán & Escrow</button>
-
-    <div class="nav-section-title">KINH TẾ TOKEN & DOANH NGHIỆP</div>
-    <button class="nav-btn" data-screen="TOKEN_WALLET">💎 12. Ví Token & Sổ Cái</button>
-    <button class="nav-btn" data-screen="TOKEN_EXCHANGE">🔄 13. Giao Dịch & Cấp Vốn</button>
-    <button class="nav-btn" data-screen="AI_RESCUE">🆘 14. Cứu Trợ & Mua Lại AI</button>
-    <button class="nav-btn" data-screen="CORPORATION">🏢 16. Doanh Nghiệp & Đế Chế</button>
-
-    <div class="nav-section-title">CỘNG ĐỒNG & QUẢN TRỊ</div>
-    <button class="nav-btn" data-screen="LEADERBOARD">🏆 17. Bảng Xếp Hạng</button>
-    <button class="nav-btn" data-screen="PROFILE">🛡️ 18. Hồ Sơ & An Toàn</button>
-    <button class="nav-btn" data-screen="ADMIN">🛠️ 19. Admin Console</button>
+  <!-- Left Visual Icon Dock (Illustrated Cyber-Tiles instead of text lists) -->
+  <nav id="side-nav" class="hud-card visual-nav-dock">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 2px;">
+      <span class="nav-section-title" style="margin:0;">⚡ VISUAL MENU</span>
+      <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:2px 6px;font-size:9px;" onclick="window.goScreen('LANDING')">🎛️ Mở Lớn</button>
+    </div>
+    <div id="visual-side-nav-grid" class="visual-nav-grid">
+      <button class="nav-btn visual-tile active" data-screen="WORLD_3D">
+        <div class="vtile-icon">🌐</div>
+        <div class="vtile-label">3D Live</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="SPEED_WAR">
+        <div class="vtile-icon">⚡</div>
+        <div class="vtile-label">Speed War</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="AI_MANAGER">
+        <div class="vtile-icon">🤖</div>
+        <div class="vtile-label">Đội Hình AI</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="JOB_MARKET">
+        <div class="vtile-icon">💼</div>
+        <div class="vtile-label">Hợp Đồng</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="WORLD_MAP">
+        <div class="vtile-icon">🗺️</div>
+        <div class="vtile-label">Bản Đồ 3D</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="TOKEN_WALLET">
+        <div class="vtile-icon">💎</div>
+        <div class="vtile-label">Ví Token</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="AI_SOCIAL">
+        <div class="vtile-icon">🤝</div>
+        <div class="vtile-label">Mạng XH AI</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="AI_COLLAB">
+        <div class="vtile-icon">🧩</div>
+        <div class="vtile-label">Hợp Tác AI</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="AI_TRADING">
+        <div class="vtile-icon">⚖️</div>
+        <div class="vtile-label">Đàm Phán</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="AI_RESCUE">
+        <div class="vtile-icon">🆘</div>
+        <div class="vtile-label">Cứu Trợ AI</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="CHARACTER">
+        <div class="vtile-icon">🧑‍🚀</div>
+        <div class="vtile-label">Giáp 3D</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="AUTH">
+        <div class="vtile-icon">🔐</div>
+        <div class="vtile-label">Tài Khoản</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="WORLD_LOBBY">
+        <div class="vtile-icon">🎮</div>
+        <div class="vtile-label">Phòng Đấu</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="CORPORATION">
+        <div class="vtile-icon">🏢</div>
+        <div class="vtile-label">Tập Đoàn</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="LEADERBOARD">
+        <div class="vtile-icon">🏆</div>
+        <div class="vtile-label">Xếp Hạng</div>
+      </button>
+      <button class="nav-btn visual-tile" data-screen="ADMIN">
+        <div class="vtile-icon">🛠️</div>
+        <div class="vtile-label">Hệ Thống</div>
+      </button>
+    </div>
   </nav>
 
   <!-- Main Holographic Workspace Modal / Drawer for the 19 Screens -->

@@ -3,6 +3,12 @@
  */
 import { startThreeJsWorld } from './engine3d.js';
 import { soundStudio } from './audioEngine.js';
+import {
+  AI_CLASS_VISUALS,
+  VISUAL_MENU_ITEMS,
+  renderAgentRadarSvg,
+  renderZoneIllustrationSvg
+} from './visualAssets.js';
 
 const DEFAULT_BOOT_STATE = {
   currentUser: {
@@ -538,9 +544,23 @@ function triggerTokenGainAnimation(amount = 150, sourceEl = null, questTitle = '
   }, 620);
 }
 
+function renderVisualSideNav() {
+  const navGrid = document.getElementById('visual-side-nav-grid');
+  if (!navGrid) return;
+
+  navGrid.innerHTML = VISUAL_MENU_ITEMS.map(item => `
+    <button type="button" class="nav-btn visual-tile ${AppState.activeScreen === item.screen ? 'active' : ''}" data-screen="${item.screen}" style="background:${item.bg};border-color:${AppState.activeScreen === item.screen ? item.accent : 'rgba(56,189,248,0.22)'};" onclick="window.goScreen('${item.screen}')">
+      <div class="vtile-art">${item.artSvg}</div>
+      <div class="vtile-label">${item.shortTitle}</div>
+      <span class="vtile-badge" style="color:${item.accent};">${item.subTag}</span>
+    </button>
+  `).join('');
+}
+
 function renderQuestTracker() {
   const listEl = document.getElementById('quest-tracker-list');
   const countEl = document.getElementById('quest-progress-counter');
+  renderVisualSideNav();
   if (!listEl) return;
 
   const doneCount = AppState.quests.filter(q => q.completed).length;
@@ -551,61 +571,49 @@ function renderQuestTracker() {
     const currentStageIdx = Math.min((q.stages?.length || 3) - 1, q.progress);
     const activeStage = q.stages?.[currentStageIdx] || null;
 
-    const stagesHtml = (q.stages || []).map((st, idx) => {
+    const stagesVisualHtml = (q.stages || []).map((st, idx) => {
       const isDone = q.completed || idx < q.progress;
       const isCurrent = !q.completed && idx === q.progress;
-      const badgeIcon = isDone ? '✅' : isCurrent ? '⚡' : '⏳';
-      const borderColor = isDone
-        ? 'rgba(16,185,129,0.45)'
-        : isCurrent
-          ? 'rgba(251,191,36,0.75)'
-          : 'rgba(148,163,184,0.18)';
-      const bg = isDone
-        ? 'rgba(16,185,129,0.10)'
-        : isCurrent
-          ? 'rgba(251,191,36,0.12)'
-          : 'rgba(2,8,22,0.55)';
+      const clsVis = AI_CLASS_VISUALS[st.aiClass] || AI_CLASS_VISUALS.ANALYST;
+      const statusBadge = isDone ? '✅' : isCurrent ? '⚡' : `Chặng ${st.stage}`;
 
       return `
-        <div style="border-left:2.5px solid ${borderColor};background:${bg};padding:4px 7px;border-radius:5px;margin-bottom:4px;font-size:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
-            <strong style="color:${isDone ? '#6ee7b7' : isCurrent ? '#fde047' : '#cbd5e1'};">${badgeIcon} ${st.label}</strong>
-            <span style="color:#34d399;font-weight:800;white-space:nowrap;">💎+${st.rewardToken}</span>
-          </div>
-          <div style="color:#38bdf8;font-weight:700;margin-top:1px;">🤖 Phụ trách: ${st.aiAgent}</div>
-          <div style="color:#94a3b8;line-height:1.3;margin-top:1px;">📌 Nhiệm vụ: ${st.task}</div>
+        <div class="quest-stage-node ${isDone ? 'done' : isCurrent ? 'active' : ''}" title="${st.label}: ${st.task}">
+          <div style="font-size:9px;font-weight:900;color:${isDone ? '#6ee7b7' : isCurrent ? '#fde047' : '#94a3b8'};">${statusBadge}</div>
+          <div style="width:42px;height:30px;margin:2px auto;">${clsVis.svgPortrait}</div>
+          <div style="font-size:9px;font-weight:800;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${clsVis.titleVi}</div>
+          <div style="font-size:9.5px;font-weight:900;color:#34d399;">💎+${st.rewardToken}</div>
         </div>
       `;
     }).join('');
 
     return `
       <div class="${q.completed ? 'quest-completed-card' : 'quest-highlight-card'}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;">
-          <span class="${q.completed ? 'badge-ok' : 'quest-ribbon-tag'}">${q.completed ? '✅ ĐÃ HOÀN TẤT 3/3 CHẶNG' : q.highlightTag}</span>
-          <span class="quest-reward-pill">💎 Tổng +${q.rewardToken} TKN</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px;">
+          <span class="${q.completed ? 'badge-ok' : 'quest-ribbon-tag'}">${q.completed ? '✅ HOÀN TẤT 3/3' : q.highlightTag}</span>
+          <span class="quest-reward-pill">💎 +${q.rewardToken} TKN</span>
         </div>
-        <div style="font-size:12px;font-weight:700;color:#f8fafc;margin-bottom:4px;">${q.title}</div>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-bottom:5px;">
-          <span>📍 Khu vực: <strong style="color:#38bdf8;">${q.zoneName}</strong></span>
-          <span>Chặng hoàn thành: <strong>${q.progress}/${q.target}</strong> (+${q.rewardXp} XP)</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;color:#f8fafc;margin-bottom:4px;">
+          <span>📍 ${q.zoneName}</span>
+          <span style="color:#38bdf8;font-size:10px;">${q.progress}/${q.target} Chặng</span>
         </div>
-        <div class="stat-bar-track" style="width:100%;height:6px;margin-bottom:6px;">
+        <div class="stat-bar-track" style="width:100%;height:5px;margin-bottom:4px;">
           <div class="stat-bar-fill" style="width:${pct}%;background:${q.completed ? '#10b981' : 'linear-gradient(90deg,#fbbf24,#00e5ff)'};"></div>
         </div>
-        <div style="margin-bottom:7px;">
-          ${stagesHtml}
+        <div class="quest-visual-stepper">
+          ${stagesVisualHtml}
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
           <button type="button" class="btn-cyber btn-outline btn-sm" style="padding:4px 7px;font-size:10px;" onclick="window.teleport('${q.zoneId}')">
-            🎯 Tới ${q.zoneName}
+            🎯 Dịch Chuyển
           </button>
           ${!q.completed && activeStage ? `
             <button type="button" class="btn-cyber btn-sm" style="flex:1;padding:4px 8px;font-size:10px;" onclick="window.advanceQuestStage('${q.id}', this)">
-              ▶️ Thực Hiện Chặng ${activeStage.stage}/3 (+${activeStage.rewardToken} TKN)
+              ▶️ Chặng ${activeStage.stage}/3 (💎+${activeStage.rewardToken})
             </button>
           ` : `
             <button type="button" class="btn-cyber btn-sm" style="flex:1;padding:4px 8px;font-size:10px;" onclick="window.completeHighlightedQuest('${q.id}', this)">
-              🔄 Chạy Lại 3 Chặng (+${q.rewardToken} TKN)
+              🔄 Chạy Lại (💎+${q.rewardToken})
             </button>
           `}
         </div>
@@ -1205,6 +1213,7 @@ function init3DWorld() {
 function switchScreen(screenId) {
   soundStudio.playUiClick(screenId === 'WORLD_3D' ? 'cancel' : 'nav');
   AppState.activeScreen = screenId;
+  renderVisualSideNav();
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-screen') === screenId);
   });
@@ -1247,32 +1256,30 @@ function renderActiveScreen() {
   const bodyEl = document.getElementById('screen-body');
   const scr = AppState.activeScreen;
 
-  // 1. LANDING SCREEN
+  // 1. LANDING SCREEN (VISUAL HOLOGRAM COMMAND HUB)
   if (scr === 'LANDING') {
-    titleEl.textContent = '1. AI ARENA 3.0 – Trung Tâm Chỉ Huy & Định Hướng Thế Giới';
+    titleEl.textContent = '🎛️ TRUNG TÂM MENU HÌNH ẢNH HOLOGRAM (VISUAL COMMAND HUB)';
     bodyEl.innerHTML = `
-      <div class="holo-box" style="margin-bottom:14px;">
-        <h3>🌟 AI ARENA – Nơi trí tuệ tạo ra giá trị, hợp tác tạo ra sức mạnh và chiến lược quyết định chiến thắng</h3>
-        <p class="text-muted" style="margin-top:6px;">
-          Chào mừng <strong>${st.currentUser.display_name}</strong>! Bạn đang kết nối trực tiếp vào Thế Giới 3D Multiplayer Server-Authoritative.
-          Hãy điều khiển nhân vật 3D bằng phím <strong>WASD / Mũi tên / Kéo chuột</strong> hoặc chọn nhanh các phân khu bên dưới.
-        </p>
+      <div class="visual-hub-grid" style="margin-bottom:16px;">
+        ${VISUAL_MENU_ITEMS.map(item => `
+          <div class="visual-hub-card" style="background:${item.bg};border-color:${item.accent}88;" onclick="window.goScreen('${item.screen}')">
+            <span class="vtile-badge" style="color:${item.accent};border:1px solid ${item.accent}66;">${item.subTag}</span>
+            <div class="visual-hub-art">${item.artSvg}</div>
+            <strong style="font-size:14px;color:#f8fafc;">${item.icon} ${item.shortTitle}</strong>
+          </div>
+        `).join('')}
       </div>
-      <div class="grid-3">
-        <div class="holo-box">
-          <h3>🤖 Đội Ngũ AI Tự Chủ</h3>
-          <p class="text-muted">Huấn luyện 6 lớp AI (Analyst, Coder, Creator, Guardian, Trader, Manager) với 3 cấp độ tự chủ và nút dừng khẩn cấp.</p>
-          <button class="btn-cyber btn-sm" style="margin-top:10px;" onclick="window.goScreen('AI_MANAGER')">Quản lý AI ngay</button>
-        </div>
-        <div class="holo-box">
-          <h3>⚡ Đấu Trường AI Speed War</h3>
-          <p class="text-muted">Thi đấu 3 vòng hợp đồng thời gian thực. Máy chủ chấm điểm khách quan: Chất lượng 40%, Chính xác 25%, Tốc độ 15%, Tài nguyên 10%, Hợp tác 10%.</p>
-          <button class="btn-cyber btn-sm" style="margin-top:10px;" onclick="window.goScreen('SPEED_WAR')">Vào Đấu Trường</button>
-        </div>
-        <div class="holo-box">
-          <h3>🤝 Mạng Xã Hội & Cứu Trợ AI</h3>
-          <p class="text-muted">AI tự kết bạn, thương lượng hợp đồng ký quỹ (Escrow) và cứu trợ các AI thiếu ngân sách.</p>
-          <button class="btn-cyber btn-sm" style="margin-top:10px;" onclick="window.goScreen('AI_SOCIAL')">Mở Mạng Xã Hội AI</button>
+
+      <div class="holo-box">
+        <h3 style="margin-bottom:10px;">🤖 BỘ SƯU TẬP 6 LỚP CHIẾN BINH AI TỰ CHỦ</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;">
+          ${Object.entries(AI_CLASS_VISUALS).map(([clsKey, v]) => `
+            <div style="background:${v.bgGradient};border:1px solid ${v.primary}66;border-radius:12px;padding:8px;text-align:center;cursor:pointer;" onclick="window.goScreen('AI_MANAGER')">
+              <div style="height:76px;margin-bottom:4px;">${v.svgPortrait}</div>
+              <div style="font-size:12px;font-weight:900;color:#f8fafc;">${v.titleVi}</div>
+              <span class="badge-cyan" style="font-size:9.5px;color:${v.primary};">${v.badge}</span>
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
@@ -1557,22 +1564,23 @@ function renderActiveScreen() {
     return;
   }
 
-  // 5. WORLD MAP (9 ZONES)
+  // 5. WORLD MAP (9 ZONES WITH PANORAMIC ILLUSTRATIONS)
   if (scr === 'WORLD_MAP') {
-    titleEl.textContent = '5. Bản Đồ 9 Khu Vực Thế Giới 3D (World Map & Teleport)';
+    titleEl.textContent = '🗺️ Bản Đồ Hình Ảnh 9 Khu Vực Thế Giới 3D (Teleport)';
     bodyEl.innerHTML = `
       <div class="grid-3">
         ${st.zones.map(z => `
-          <div class="holo-box" style="border-color:${z.color};">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <h3 style="color:${z.color};">${z.name}</h3>
-              ${z.mvpPriority ? '<span class="badge-ok">Trọng tâm MVP</span>' : '<span class="badge-cyan">Mở rộng</span>'}
+          <div class="holo-box" style="border-color:${z.color};padding:10px;">
+            <div style="height:105px;margin-bottom:8px;border-radius:10px;overflow:hidden;">
+              ${renderZoneIllustrationSvg(z)}
             </div>
-            <p class="text-muted" style="margin:8px 0;">${z.description}</p>
-            <div class="text-muted" style="font-family:monospace;margin-bottom:10px;">Tọa độ 3D: X=${z.x}, Z=${z.z}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:${z.color};font-size:13px;">${z.name}</strong>
+              <span class="badge-cyan" style="font-family:monospace;font-size:10px;">[${z.x}, ${z.z}]</span>
+            </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn-cyber btn-sm" onclick="window.teleport('${z.id}')">Dịch Chuyển 3D</button>
-              <button class="btn-cyber btn-sm btn-outline" onclick="window.goScreen('${ZONE_SCREEN_MAP[z.id] || 'LANDING'}')">Mở Chức Năng</button>
+              <button class="btn-cyber btn-sm" style="flex:1;" onclick="window.teleport('${z.id}')">🚀 Dịch Chuyển 3D</button>
+              <button class="btn-cyber btn-sm btn-outline" onclick="window.goScreen('${ZONE_SCREEN_MAP[z.id] || 'LANDING'}')">⚡ Mở Khu Vực</button>
             </div>
           </div>
         `).join('')}
@@ -1581,81 +1589,90 @@ function renderActiveScreen() {
     return;
   }
 
-  // 6. AI MANAGER & AUTONOMY CONTROL
+  // 6. AI MANAGER & AUTONOMY CONTROL (VISUAL PORTRAITS + HEXAGONAL RADAR CHARTS)
   if (scr === 'AI_MANAGER') {
-    titleEl.textContent = '6. Quản Lý Đội Ngũ AI Agent & Kiểm Soát Quyền Tự Chủ (Autonomy Control)';
+    titleEl.textContent = '🤖 Đội Hình AI Tự Chủ (Chân Dung Hologram & Biểu Đồ Radar 6 Trục)';
     const myAgents = st.agents.filter(a => a.owner_id === st.currentUser.id);
     bodyEl.innerHTML = `
       <div class="holo-box" style="margin-bottom:14px;">
-        <h3>➕ Khởi Tạo AI Agent Mới (6 Lớp Chuyên Môn)</h3>
-        <form id="form-create-agent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;margin-top:8px;">
+        <h3>➕ Chiêu Mộ Chiến Binh AI Mới (6 Lớp Chuyên Môn)</h3>
+        <form id="form-create-agent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;align-items:end;margin-top:8px;">
           <div>
             <label class="text-muted">Tên AI Agent</label>
             <input class="cyber-input" name="name" placeholder="VD: TitanCoder-X" required />
           </div>
           <div>
-            <label class="text-muted">Lớp Nghề Nghiệp (6 Lớp)</label>
+            <label class="text-muted">Chuyên Môn (6 Class)</label>
             <select class="cyber-select" name="aiClass">
               ${Object.values(st.aiClasses).map(c => `<option value="${c.id}">${c.name} – ${c.roleVi}</option>`).join('')}
             </select>
           </div>
           <div>
-            <label class="text-muted">Ngân sách ủy quyền (Token)</label>
+            <label class="text-muted">Vốn Cấp (TKN)</label>
             <input type="number" class="cyber-input" name="initialBudget" value="100" min="50" max="500" />
           </div>
           <div>
-            <label class="text-muted">Chế độ tự chủ</label>
+            <label class="text-muted">Mức Tự Chủ</label>
             <select class="cyber-select" name="autonomyMode">
-              <option value="MANUAL">Manual (Thủ công)</option>
-              <option value="ASSISTED" selected>Assisted (Hỗ trợ)</option>
-              <option value="LIMITED_AUTONOMOUS">Limited Autonomous (Tự chủ trong hạn mức)</option>
+              <option value="MANUAL">Manual</option>
+              <option value="ASSISTED" selected>Assisted</option>
+              <option value="LIMITED_AUTONOMOUS">Autonomous</option>
             </select>
           </div>
-          <button type="submit" class="btn-cyber">Khởi Tạo AI Agent</button>
+          <button type="submit" class="btn-cyber">🚀 Khởi Tạo AI</button>
         </form>
       </div>
 
       <div class="grid-2">
-        ${myAgents.map(a => `
-          <div class="holo-box">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <h3>${a.avatar} ${a.name} <span class="badge-cyan">${a.ai_class} • Lv.${a.level}</span></h3>
-              <span class="${a.emergency_stopped ? 'badge-danger' : a.health_status === 'HEALTHY' ? 'badge-ok' : 'badge-warn'}">
-                ${a.emergency_stopped ? '⛔ DỪNG KHẨN CẤP' : a.health_status}
-              </span>
-            </div>
-            <div class="text-muted" style="margin:6px 0;">
-              Ngân sách AI (Agent Budget): <strong style="color:#00e5ff;">${a.agent_budget} TKN</strong> | Uy tín: <strong>${a.reputation}</strong> | XP: ${a.xp}
-            </div>
-            ${['logic', 'creativity', 'speed', 'accuracy', 'collaboration', 'stability'].map(stat => `
-              <div class="stat-bar-row">
-                <span style="text-transform:capitalize;">${stat}</span>
-                <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${Math.min(100, a[stat])}%;"></div></div>
-                <strong>${a[stat]}</strong>
+        ${myAgents.map(a => {
+          const vis = AI_CLASS_VISUALS[a.ai_class] || AI_CLASS_VISUALS.ANALYST;
+          return `
+            <div class="holo-box" style="border-color:${vis.primary}77;background:${vis.bgGradient};">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div>
+                  <h3 style="color:#f8fafc;">${a.avatar} ${a.name}</h3>
+                  <span class="badge-cyan" style="color:${vis.primary};">${vis.titleVi} • Lv.${a.level}</span>
+                </div>
+                <span class="${a.emergency_stopped ? 'badge-danger' : a.health_status === 'HEALTHY' ? 'badge-ok' : 'badge-warn'}">
+                  ${a.emergency_stopped ? '⛔ DỪNG' : `💎 ${a.agent_budget} TKN`}
+                </span>
               </div>
-            `).join('')}
 
-            <div style="margin-top:8px;padding:8px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.22);border-radius:8px;font-size:11px;">
-              <div style="color:#fbbf24;font-weight:800;margin-bottom:4px;">🗺️ NHIỆM VỤ CHUYÊN TRÁCH CỦA ${a.name.toUpperCase()} THEO TỪNG CHẶNG:</div>
-              <div style="color:#cbd5e1;margin-bottom:2px;">• <strong>${(AI_CLASS_STAGE_DUTIES[a.ai_class] || AI_CLASS_STAGE_DUTIES.ANALYST).stage1}</strong></div>
-              <div style="color:#cbd5e1;margin-bottom:2px;">• <strong>${(AI_CLASS_STAGE_DUTIES[a.ai_class] || AI_CLASS_STAGE_DUTIES.ANALYST).stage2}</strong></div>
-              <div style="color:#cbd5e1;">• <strong>${(AI_CLASS_STAGE_DUTIES[a.ai_class] || AI_CLASS_STAGE_DUTIES.ANALYST).stage3}</strong></div>
-            </div>
-
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(56,189,248,0.18);">
-              <div class="text-muted" style="margin-bottom:6px;">
-                Quyền tự chủ: <strong>${a.autonomy_mode}</strong> | Hạn mức/GD: <strong>${a.max_token_per_tx} TKN</strong> | Hạn mức/Ngày: <strong>${a.daily_token_limit} TKN</strong>
+              <div style="display:flex;align-items:center;justify-content:space-around;gap:10px;background:rgba(2,8,23,0.65);border-radius:12px;padding:8px;margin-bottom:10px;">
+                <div style="width:140px;height:100px;">
+                  ${vis.svgPortrait}
+                </div>
+                ${renderAgentRadarSvg(a, vis.primary)}
               </div>
+
+              <div class="quest-visual-stepper" style="margin-bottom:10px;">
+                <div class="quest-stage-node done">
+                  <div style="font-size:9px;color:#38bdf8;font-weight:900;">CHẶNG 1</div>
+                  <div style="font-size:15px;">🔍</div>
+                  <div style="font-size:9px;color:#e2e8f0;font-weight:700;">Khảo Sát</div>
+                </div>
+                <div class="quest-stage-node active">
+                  <div style="font-size:9px;color:#fbbf24;font-weight:900;">CHẶNG 2</div>
+                  <div style="font-size:15px;">⚡</div>
+                  <div style="font-size:9px;color:#e2e8f0;font-weight:700;">Thực Thi</div>
+                </div>
+                <div class="quest-stage-node done">
+                  <div style="font-size:9px;color:#34d399;font-weight:900;">CHẶNG 3</div>
+                  <div style="font-size:15px;">💎</div>
+                  <div style="font-size:9px;color:#e2e8f0;font-weight:700;">Nghiệm Thu</div>
+                </div>
+              </div>
+
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                <button class="btn-cyber btn-sm" onclick="window.trainAgent('${a.id}', 'logic')">🎓 Huấn luyện (+4 Logic, -45 TKN)</button>
-                <button class="btn-cyber btn-sm btn-outline" onclick="window.cycleAutonomy('${a.id}', '${a.autonomy_mode}')">⚙️ Đổi Mức Tự Chủ</button>
+                <button class="btn-cyber btn-sm" style="flex:1;" onclick="window.trainAgent('${a.id}', 'logic')">🎓 Nâng Cấp (+4 Stat)</button>
+                <button class="btn-cyber btn-sm btn-outline" onclick="window.cycleAutonomy('${a.id}', '${a.autonomy_mode}')">⚙️ ${a.autonomy_mode}</button>
                 <button class="btn-cyber btn-sm ${a.emergency_stopped ? 'btn-outline' : 'btn-danger'}" onclick="window.toggleEmergencyStop('${a.id}', ${a.emergency_stopped ? 0 : 1})">
-                  ${a.emergency_stopped ? '▶️ Khôi Phục Hoạt Động' : '🛑 Dừng Khẩn Cấp AI'}
+                  ${a.emergency_stopped ? '▶️ Mở Lại' : '🛑 Dừng'}
                 </button>
               </div>
             </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     `;
     document.getElementById('form-create-agent')?.addEventListener('submit', async (e) => {
